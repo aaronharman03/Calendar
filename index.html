@@ -27,6 +27,9 @@
     }
     header h1 {
       margin: 0;
+      font-size: 1.5rem;
+      flex-grow: 1;
+      text-align: center;
     }
     .calendar-header {
       display: flex;
@@ -174,7 +177,7 @@
     <button id="showFormBtn">+ Add Task</button>
   </div>
 
-  <h2 id="dailyDateTitle">Selected Date</h2>
+  <h2 id="dailyDateTitle" style="display:none;">Selected Date</h2>
   <div id="tasksList"></div>
 
   <form id="addEventForm">
@@ -264,12 +267,13 @@
     if(user) {
       loginDiv.style.display = "none";
       appDiv.style.display = "block";
+      logoutBtn.style.display = "inline-block";
       currentUser = user;
-      loadUserData();
-      renderCalendar();
+      loadUserData().then(() => renderCalendar());
     } else {
       loginDiv.style.display = "flex";
       appDiv.style.display = "none";
+      logoutBtn.style.display = "none";
       currentUser = null;
     }
   });
@@ -338,7 +342,7 @@
     calendarView.style.display = "block";
     dailyView.style.display = "none";
 
-    // Show month buttons
+    // Show month buttons and update header to Month Year
     prevMonthBtn.style.display = "inline-block";
     nextMonthBtn.style.display = "inline-block";
 
@@ -424,7 +428,14 @@
     nextMonthBtn.style.display = "none";
 
     selectedDate = date;
-    dailyDateTitle.textContent = date.toDateString();
+
+    // Update header to full selected date (like "Tuesday, May 21, 2025")
+    monthYearEl.textContent = selectedDate.toLocaleDateString('default', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    // Hide the old dailyDateTitle h2 since now header shows the date
+    dailyDateTitle.style.display = "none";
 
     showFormBtn.style.display = "inline-block";
     addEventForm.style.display = "none";
@@ -516,36 +527,34 @@
   deleteBtn.addEventListener("click", async () => {
     if(editingEventId && selectedDate) {
       const dateStr = formatDate(selectedDate);
-      if(events[dateStr] && events[dateStr][editingEventId]) {
-        delete events[dateStr][editingEventId];
-        if(Object.keys(events[dateStr]).length === 0) {
-          delete events[dateStr];
-        }
-        await saveUserData();
-        renderTasksForDate(selectedDate);
-        descModal.style.display = "none";
+      delete events[dateStr][editingEventId];
+      if(Object.keys(events[dateStr]).length === 0) {
+        delete events[dateStr];
       }
+      await saveUserData();
+      descModal.style.display = "none";
+      renderTasksForDate(selectedDate);
+      editingEventId = null;
     }
   });
 
-  // Back to month button
+  // Back to month view button
   backToMonthBtn.addEventListener("click", () => {
     renderCalendar();
   });
 
-  // Show add event form button
+  // Show add task form button
   showFormBtn.addEventListener("click", () => {
     addEventForm.style.display = "block";
     showFormBtn.style.display = "none";
     formTitle.textContent = "Add Task";
-
     eventTimeInput.value = "";
     eventTitleInput.value = "";
     eventDescInput.value = "";
     editingEventId = null;
   });
 
-  // Add/edit event form submission
+  // Add event form submit
   addEventForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     if(!selectedDate) return;
@@ -553,20 +562,20 @@
     const dateStr = formatDate(selectedDate);
     if(!events[dateStr]) events[dateStr] = {};
 
-    // Generate a unique ID if adding new
-    const eventId = editingEventId || "id_" + Date.now();
+    const id = editingEventId || crypto.randomUUID();
 
-    events[dateStr][eventId] = {
+    events[dateStr][id] = {
       time: eventTimeInput.value,
       title: eventTitleInput.value,
-      description: eventDescInput.value
+      description: eventDescInput.value,
     };
 
     await saveUserData();
-    renderTasksForDate(selectedDate);
 
     addEventForm.style.display = "none";
     showFormBtn.style.display = "inline-block";
+
+    renderTasksForDate(selectedDate);
   });
 
   // Prev/Next month buttons
@@ -588,11 +597,10 @@
     renderCalendar();
   });
 
-  // Initial render
+  // Initial load
   renderCalendar();
 
 </script>
 
 </body>
 </html>
-
