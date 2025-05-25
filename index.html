@@ -476,7 +476,7 @@
   // Open modal to show event description with menu options
   function openDescModal(id, event) {
     descTitle.textContent = event.title + " (" + event.time + ")";
-    descText.textContent = event.description || "No description.";
+    descText.innerHTML = (event.description || "No description.").replace(/\n/g, '<br>');
     descModal.style.display = "flex";
     editingEventId = id;
 
