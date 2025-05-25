@@ -347,6 +347,8 @@
     dailyDateTitle.textContent = new Date(dateStr).toLocaleDateString();
     calendarView.style.display = "none";
     dailyView.style.display = "block";
+    document.getElementById("prevMonth").style.display = "none";
+    document.getElementById("nextMonth").style.display = "none";
     renderTasks(dateStr);
     addEventForm.style.display = "none";
     showFormBtn.style.display = "inline-block";
@@ -412,6 +414,8 @@
   backToMonthBtn.addEventListener("click", () => {
     dailyView.style.display = "none";
     calendarView.style.display = "block";
+    document.getElementById("prevMonth").style.display = "inline-block";
+  document.getElementById("nextMonth").style.display = "inline-block";
   });
 
   showFormBtn.addEventListener("click", () => {
