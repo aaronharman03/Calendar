@@ -1,7 +1,7 @@
 {
   "name": "My Calendar",
   "short_name": "Calendar",
-  "start_url": "./calendar.html",
+  "start_url": "/Calendar/calendar.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#007bff",
