@@ -201,6 +201,20 @@
   // Initialize Firebase (namespaced style)
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
+// Save tasks for a specific date
+function saveTasksToFirestore(date, tasksForDate) {
+  return db.collection('tasks').doc(date).set({ tasks: tasksForDate });
+}
+
+// Load tasks for a specific date
+async function loadTasksFromFirestore(date) {
+  const doc = await db.collection('tasks').doc(date).get();
+  if (doc.exists) {
+    return doc.data().tasks || [];
+  } else {
+    return [];
+  }
+}
 
 let currentDate = new Date();
 const calendarEl = document.getElementById("calendar");
