@@ -109,9 +109,42 @@
     input, textarea, select {
       font-size: 16px;
     }
+    /* Login area styling */
+    #loginDiv {
+      padding: 1rem;
+      background: #eee;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    #loginDiv input {
+      padding: 8px;
+      font-size: 16px;
+      flex-grow: 1;
+      min-width: 180px;
+    }
+    #loginDiv button {
+      padding: 8px 16px;
+      font-size: 16px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
+
+<!-- LOGIN FORM -->
+<div id="loginDiv">
+  <input type="email" id="email" placeholder="Email" />
+  <input type="password" id="password" placeholder="Password" />
+  <button id="loginBtn">Login</button>
+  <button id="signupBtn">Sign Up</button>
+  <button id="logoutBtn" style="display:none; margin-left: 1rem;">Logout</button>
+</div>
+
+<!-- APP CONTAINER -->
+<div id="appDiv" style="display:none;">
 
 <header>
   <button id="prevMonth">&lt;</button>
@@ -159,9 +192,12 @@
   </div>
 </div>
 
+</div> <!-- end of appDiv -->
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyD_u0nBXgOfoeK8O9OyZVXlpSF9_v7ovQU",
@@ -175,16 +211,67 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const auth = getAuth();
+
+  // DOM references for auth and UI
+  const loginDiv = document.getElementById("loginDiv");
+  const appDiv = document.getElementById("appDiv");
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+  const loginBtn = document.getElementById("loginBtn");
+  const signupBtn = document.getElementById("signupBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  loginBtn.addEventListener("click", () => {
+    const email = emailInput.value;
+    const password = passwordInput.value;
+    signInWithEmailAndPassword(auth, email, password)
+      .then(() => {
+        console.log("Logged in");
+      })
+      .catch(e => alert("Login failed: " + e.message));
+  });
+
+  signupBtn.addEventListener("click", () => {
+    const email = emailInput.value;
+    const password = passwordInput.value;
+    createUserWithEmailAndPassword(auth, email, password)
+      .then(() => alert("Account created"))
+      .catch(e => alert("Sign up failed: " + e.message));
+  });
+
+  logoutBtn.addEventListener("click", () => {
+    signOut(auth);
+  });
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      loginDiv.style.display = "none";
+      appDiv.style.display = "block";
+      loadTasksFromFirestore();
+    } else {
+      loginDiv.style.display = "flex";
+      appDiv.style.display = "none";
+      clearCalendar();
+    }
+  });
+
+  // Calendar & Task code (existing stuff, now adjusted for user auth)
 
   let currentDate = new Date();
-  const calendarEl = document.getElementById("calendar");
-  const monthYearEl = document.getElementById("monthYear");
-  const calendarView = document.getElementById("calendarView");
+  let selectedDate = null;
+  let tasks = {}; // { 'YYYY-MM-DD': [ {time, title, desc}, ... ] }
+
+  // DOM Elements
+  const monthYear = document.getElementById("monthYear");
+  const calendar = document.getElementById("calendar");
   const dailyView = document.getElementById("dailyView");
+  const calendarView = document.getElementById("calendarView");
+  const backToMonthBtn = document.getElementById("backToMonth");
   const dailyDateTitle = document.getElementById("dailyDateTitle");
   const tasksList = document.getElementById("tasksList");
-  const addEventForm = document.getElementById("addEventForm");
   const showFormBtn = document.getElementById("showFormBtn");
+  const addEventForm = document.getElementById("addEventForm");
   const eventTime = document.getElementById("eventTime");
   const eventTitle = document.getElementById("eventTitle");
   const eventDesc = document.getElementById("eventDesc");
@@ -199,182 +286,166 @@
   const editBtn = document.getElementById("editBtn");
   const deleteBtn = document.getElementById("deleteBtn");
 
-  const backToMonth = document.getElementById("backToMonth");
+  let editingTask = null; // {date, index}
 
-  let selectedDate = null;
-  let editingTaskIndex = null;
-  let tasks = []; // tasks array for selectedDate
-
-  async function loadTasksFromFirestore(date) {
-    const docRef = doc(db, "tasks", date);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return docSnap.data().tasks || [];
-    }
-    return [];
-  }
-
-  async function saveTasksToFirestore(date, tasksArray) {
-    const docRef = doc(db, "tasks", date);
-    await setDoc(docRef, { tasks: tasksArray });
+  function clearCalendar() {
+    calendar.innerHTML = "";
+    tasks = {};
+    dailyView.style.display = "none";
+    calendarView.style.display = "block";
   }
 
   function renderCalendar() {
+    calendar.innerHTML = "";
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
+
+    // Month-year title
+    monthYear.textContent = currentDate.toLocaleString("default", { month: "long", year: "numeric" });
+
+    // Day names
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    dayNames.forEach(day => {
+      const div = document.createElement("div");
+      div.textContent = day;
+      div.classList.add("day-name");
+      calendar.appendChild(div);
+    });
+
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    calendarEl.innerHTML = "";
-
-    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    dayNames.forEach(day => {
-      const dayEl = document.createElement("div");
-      dayEl.className = "day-name";
-      dayEl.textContent = day;
-      calendarEl.appendChild(dayEl);
-    });
-
+    // Add empty cells for days before first of month
     for (let i = 0; i < firstDay; i++) {
-      calendarEl.appendChild(document.createElement("div"));
+      const div = document.createElement("div");
+      calendar.appendChild(div);
     }
 
     for (let day = 1; day <= daysInMonth; day++) {
-      const dayEl = document.createElement("div");
-      dayEl.className = "day";
-      const dateObj = new Date(year, month, day);
-      const today = new Date();
-      if (dateObj.toDateString() === today.toDateString()) {
-        dayEl.classList.add("today");
+      const div = document.createElement("div");
+      div.textContent = day;
+      div.classList.add("date-number");
+      if (year === (new Date()).getFullYear() &&
+          month === (new Date()).getMonth() &&
+          day === (new Date()).getDate()) {
+        div.classList.add("today");
       }
-
-      dayEl.innerHTML = `<div class="date-number">${day}</div>`;
-      dayEl.addEventListener("click", () => openDailyView(dateObj));
-      calendarEl.appendChild(dayEl);
+      div.addEventListener("click", () => openDailyView(year, month, day));
+      calendar.appendChild(div);
     }
-
-    monthYearEl.textContent = `${currentDate.toLocaleString("default", { month: "long" })} ${year}`;
   }
 
-  async function openDailyView(date) {
-    selectedDate = date.toISOString().split("T")[0];
-    dailyDateTitle.textContent = date.toDateString();
+  function openDailyView(year, month, day) {
+    selectedDate = `${year}-${(month + 1).toString().padStart(2,"0")}-${day.toString().padStart(2,"0")}`;
+    dailyDateTitle.textContent = new Date(selectedDate).toLocaleDateString(undefined, { weekday: 'long', year:'numeric', month:'long', day:'numeric' });
     calendarView.style.display = "none";
     dailyView.style.display = "block";
-    addEventForm.reset();
+    showFormBtn.style.display = "inline-block";
     addEventForm.style.display = "none";
-    showFormBtn.style.display = "block";
-    editingTaskIndex = null;
-
-    tasks = await loadTasksFromFirestore(selectedDate);
-    renderTasks();
+    editingTask = null;
+    renderTasksForDate();
   }
 
-  function renderTasks() {
+  function renderTasksForDate() {
     tasksList.innerHTML = "";
-
-    if (tasks.length === 0) {
-      tasksList.innerHTML = "<p style='text-align:center;'>No tasks yet.</p>";
-      return;
-    }
-
-    tasks.forEach((task, index) => {
-      const taskRow = document.createElement("div");
-      taskRow.className = "taskRow";
-      taskRow.textContent = `${task.time} - ${task.title}`;
-      taskRow.addEventListener("click", () => openDescModal(index));
-      tasksList.appendChild(taskRow);
+    if (!tasks[selectedDate]) return;
+    tasks[selectedDate].forEach((task, index) => {
+      const div = document.createElement("div");
+      div.className = "taskRow";
+      div.textContent = `${task.time} - ${task.title}`;
+      div.addEventListener("click", () => openDescModal(selectedDate, index));
+      tasksList.appendChild(div);
     });
   }
-
-  function openDescModal(index) {
-    const task = tasks[index];
-    descTitle.textContent = task.title;
-    descText.textContent = task.desc || "(No description)";
-    descModal.style.display = "flex";
-
-    editingTaskIndex = index;
-    menuOptions.style.display = "none";
-  }
-
-  function closeDesc() {
-    descModal.style.display = "none";
-    editingTaskIndex = null;
-  }
-
-  function toggleMenu() {
-    menuOptions.style.display = menuOptions.style.display === "block" ? "none" : "block";
-  }
-
-  function editTask() {
-    if (editingTaskIndex === null) return;
-
-    const task = tasks[editingTaskIndex];
-    addEventForm.style.display = "block";
-    showFormBtn.style.display = "none";
-    formTitle.textContent = "Edit Task";
-
-    eventTime.value = task.time;
-    eventTitle.value = task.title;
-    eventDesc.value = task.desc || "";
-
-    descModal.style.display = "none";
-  }
-
-  async function deleteTask() {
-    if (editingTaskIndex === null) return;
-
-    tasks.splice(editingTaskIndex, 1);
-    await saveTasksToFirestore(selectedDate, tasks);
-    renderTasks();
-    closeDesc();
-  }
-
-  addEventForm.addEventListener("submit", async e => {
-    e.preventDefault();
-
-    const newTask = {
-      time: eventTime.value,
-      title: eventTitle.value.trim(),
-      desc: eventDesc.value.trim()
-    };
-
-    if (editingTaskIndex !== null) {
-      tasks[editingTaskIndex] = newTask;
-    } else {
-      tasks.push(newTask);
-    }
-
-    tasks.sort((a, b) => a.time.localeCompare(b.time));
-    await saveTasksToFirestore(selectedDate, tasks);
-
-    addEventForm.reset();
-    addEventForm.style.display = "none";
-    showFormBtn.style.display = "block";
-    editingTaskIndex = null;
-
-    renderTasks();
-  });
 
   showFormBtn.addEventListener("click", () => {
     addEventForm.style.display = "block";
     showFormBtn.style.display = "none";
+    eventTime.value = "";
+    eventTitle.value = "";
+    eventDesc.value = "";
     formTitle.textContent = "Add Task";
-    addEventForm.reset();
-    editingTaskIndex = null;
+    editingTask = null;
   });
 
-  closeDescModal.addEventListener("click", closeDesc);
-  menuBtn.addEventListener("click", toggleMenu);
-  editBtn.addEventListener("click", editTask);
-  deleteBtn.addEventListener("click", deleteTask);
+  addEventForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!tasks[selectedDate]) tasks[selectedDate] = [];
 
-  backToMonth.addEventListener("click", () => {
+    const newTask = {
+      time: eventTime.value,
+      title: eventTitle.value,
+      desc: eventDesc.value,
+    };
+
+    if (editingTask) {
+      tasks[selectedDate][editingTask.index] = newTask;
+    } else {
+      tasks[selectedDate].push(newTask);
+    }
+
+    saveTasksToFirestore();
+    renderTasksForDate();
+    addEventForm.style.display = "none";
+    showFormBtn.style.display = "inline-block";
+  });
+
+  backToMonthBtn.addEventListener("click", () => {
     dailyView.style.display = "none";
     calendarView.style.display = "block";
-    editingTaskIndex = null;
   });
 
+  // Description Modal logic
+  let currentDescTask = null;
+
+  function openDescModal(date, index) {
+    currentDescTask = { date, index };
+    const task = tasks[date][index];
+    descTitle.textContent = task.title;
+    descText.textContent = task.desc || "(No description)";
+    descModal.style.display = "flex";
+    menuOptions.style.display = "none";
+  }
+
+  closeDescModal.addEventListener("click", () => {
+    descModal.style.display = "none";
+  });
+
+  menuBtn.addEventListener("click", () => {
+    if (menuOptions.style.display === "none") {
+      menuOptions.style.display = "block";
+    } else {
+      menuOptions.style.display = "none";
+    }
+  });
+
+  editBtn.addEventListener("click", () => {
+    if (!currentDescTask) return;
+    const { date, index } = currentDescTask;
+    const task = tasks[date][index];
+    eventTime.value = task.time;
+    eventTitle.value = task.title;
+    eventDesc.value = task.desc;
+    formTitle.textContent = "Edit Task";
+    editingTask = { date, index };
+    addEventForm.style.display = "block";
+    showFormBtn.style.display = "none";
+    descModal.style.display = "none";
+  });
+
+  deleteBtn.addEventListener("click", () => {
+    if (!currentDescTask) return;
+    const { date, index } = currentDescTask;
+    tasks[date].splice(index, 1);
+    if (tasks[date].length === 0) {
+      delete tasks[date];
+    }
+    saveTasksToFirestore();
+    renderTasksForDate();
+    descModal.style.display = "none";
+  });
+
+  // Month navigation
   document.getElementById("prevMonth").addEventListener("click", () => {
     currentDate.setMonth(currentDate.getMonth() - 1);
     renderCalendar();
@@ -385,20 +456,28 @@
     renderCalendar();
   });
 
-  // Initial render
-  renderCalendar();
+  // FIRESTORE integration for user-specific data
 
+  async function loadTasksFromFirestore() {
+    if (!auth.currentUser) return;
+    const userDocRef = doc(db, "tasks", auth.currentUser.uid);
+    const userDocSnap = await getDoc(userDocRef);
+    if (userDocSnap.exists()) {
+      tasks = userDocSnap.data() || {};
+    } else {
+      tasks = {};
+    }
+    renderCalendar();
+  }
+
+  async function saveTasksToFirestore() {
+    if (!auth.currentUser) return;
+    const userDocRef = doc(db, "tasks", auth.currentUser.uid);
+    await setDoc(userDocRef, tasks);
+  }
+
+  // Initial render if user is already logged in (handled in onAuthStateChanged)
 </script>
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
