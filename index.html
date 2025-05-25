@@ -183,9 +183,7 @@
   <form id="addEventForm">
     <h3 id="formTitle">Add Task</h3>
     <label>Time:</label>
-    <!-- Changed time input to allow for All Day option -->
-    <input type="time" id="eventTime" />
-    <label style="margin-top: 6px;"><input type="checkbox" id="allDayCheckbox" /> All Day</label>
+    <input type="time" id="eventTime" required />
     <label>Title:</label>
     <input type="text" id="eventTitle" required />
     <label>Description:</label>
@@ -248,7 +246,7 @@
       .then(() => {
         console.log("Logged in");
       })
-      .catch(err => alert("Login failed: " + err.message));
+      .catch(e => alert("Login failed: " + e.message));
   });
 
   signupBtn.addEventListener("click", () => {
@@ -256,51 +254,52 @@
     const password = passwordInput.value;
     createUserWithEmailAndPassword(auth, email, password)
       .then(() => {
-        alert("Sign up successful! Please log in.");
+        alert("Signup successful. Please login.");
       })
-      .catch(err => alert("Sign up failed: " + err.message));
+      .catch(e => alert("Signup failed: " + e.message));
   });
 
   logoutBtn.addEventListener("click", () => {
-    signOut(auth).then(() => {
-      console.log("Logged out");
-    });
+    signOut(auth);
   });
 
   onAuthStateChanged(auth, user => {
     if(user) {
       loginDiv.style.display = "none";
       appDiv.style.display = "block";
+      logoutBtn.style.display = "inline-block";
       currentUser = user;
-      initCalendar();
+      loadUserData().then(() => renderCalendar());
     } else {
       loginDiv.style.display = "flex";
       appDiv.style.display = "none";
+      logoutBtn.style.display = "none";
+      currentUser = null;
     }
   });
 
+  // Calendar variables
   let currentUser = null;
+  let currentYear, currentMonth; // for month view
+  let selectedDate; // for daily view
+  let events = {}; // cached events
 
-  // Calendar state variables
-  let currentDate = new Date();
-  let selectedDate = null;
-  let editingEventId = null; // For editing
-
-  // DOM Elements for calendar
+  // DOM references for calendar
   const monthYearEl = document.getElementById("monthYear");
   const calendarEl = document.getElementById("calendar");
-  const dailyView = document.getElementById("dailyView");
+  const prevMonthBtn = document.getElementById("prevMonth");
+  const nextMonthBtn = document.getElementById("nextMonth");
   const calendarView = document.getElementById("calendarView");
+  const dailyView = document.getElementById("dailyView");
+  const dailyDateTitle = document.getElementById("dailyDateTitle");
   const backToMonthBtn = document.getElementById("backToMonth");
   const showFormBtn = document.getElementById("showFormBtn");
+  const tasksList = document.getElementById("tasksList");
   const addEventForm = document.getElementById("addEventForm");
   const eventTimeInput = document.getElementById("eventTime");
-  const allDayCheckbox = document.getElementById("allDayCheckbox"); // New checkbox
   const eventTitleInput = document.getElementById("eventTitle");
   const eventDescInput = document.getElementById("eventDesc");
   const formTitle = document.getElementById("formTitle");
-  const dailyDateTitle = document.getElementById("dailyDateTitle");
-  const tasksList = document.getElementById("tasksList");
 
   // Modal elements
   const descModal = document.getElementById("descModal");
@@ -312,293 +311,298 @@
   const editBtn = document.getElementById("editBtn");
   const deleteBtn = document.getElementById("deleteBtn");
 
-  // Navigation buttons
-  document.getElementById("prevMonth").addEventListener("click", () => {
-    currentDate.setMonth(currentDate.getMonth() - 1);
-    renderCalendar();
-  });
-  document.getElementById("nextMonth").addEventListener("click", () => {
-    currentDate.setMonth(currentDate.getMonth() + 1);
-    renderCalendar();
-  });
-  backToMonthBtn.addEventListener("click", () => {
-    dailyView.style.display = "none";
-    calendarView.style.display = "block";
-  });
+  let editingEventId = null; // for edits
 
-  showFormBtn.addEventListener("click", () => {
-    openForm();
-  });
+  // Initialize to today
+  const today = new Date();
+  currentYear = today.getFullYear();
+  currentMonth = today.getMonth();
 
-  // When All Day is checked, disable the time input
-  allDayCheckbox.addEventListener("change", () => {
-    if(allDayCheckbox.checked) {
-      eventTimeInput.disabled = true;
-      eventTimeInput.value = ""; // Clear time if all day
+  // Load user data
+  async function loadUserData() {
+    if(!currentUser) return;
+    const docRef = doc(db, "calendars", currentUser.uid);
+    const docSnap = await getDoc(docRef);
+    if(docSnap.exists()) {
+      events = docSnap.data();
     } else {
-      eventTimeInput.disabled = false;
+      events = {};
     }
-  });
-
-  // Fetch and render calendar
-  function initCalendar() {
-    renderCalendar();
   }
 
+  // Save user data
+  async function saveUserData() {
+    if(!currentUser) return;
+    const docRef = doc(db, "calendars", currentUser.uid);
+    await setDoc(docRef, events);
+  }
+
+  // Render month calendar
   function renderCalendar() {
+    calendarView.style.display = "block";
+    dailyView.style.display = "none";
+
+    // Show month buttons and update header to Month Year
+    prevMonthBtn.style.display = "inline-block";
+    nextMonthBtn.style.display = "inline-block";
+
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+    const startDayOfWeek = firstDay.getDay(); // Sunday=0
+    const daysInMonth = lastDay.getDate();
+
+    monthYearEl.textContent = firstDay.toLocaleString('default', { month: 'long', year: 'numeric' });
+
     calendarEl.innerHTML = "";
 
-    // Show month/year
-    const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-    monthYearEl.textContent = monthNames[currentDate.getMonth()] + " " + currentDate.getFullYear();
-
-    // Show day names header
-    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    dayNames.forEach(day => {
-      const dayEl = document.createElement("div");
-      dayEl.className = "day-name";
-      dayEl.textContent = day;
-      calendarEl.appendChild(dayEl);
-    });
-
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-
-    const firstDayOfMonth = new Date(year, month, 1);
-    const lastDayOfMonth = new Date(year, month + 1, 0);
-
-    const startDay = firstDayOfMonth.getDay();
-    const totalDays = lastDayOfMonth.getDate();
-
-    // Fill blanks for days before month start
-    for(let i = 0; i < startDay; i++) {
-      const emptyCell = document.createElement("div");
-      calendarEl.appendChild(emptyCell);
+    // Day names
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    for(let dayName of dayNames) {
+      const dayNameDiv = document.createElement("div");
+      dayNameDiv.classList.add("day-name");
+      dayNameDiv.textContent = dayName;
+      calendarEl.appendChild(dayNameDiv);
     }
 
-    // Fill days
-    for(let day=1; day <= totalDays; day++) {
-      const dayCell = document.createElement("div");
-      dayCell.className = "date-number";
-      const thisDate = new Date(year, month, day);
-      dayCell.textContent = day;
+    // Blank days before first day
+    for(let i=0; i < startDayOfWeek; i++) {
+      const blankDiv = document.createElement("div");
+      calendarEl.appendChild(blankDiv);
+    }
+
+    // Days
+    for(let day=1; day <= daysInMonth; day++) {
+      const date = new Date(currentYear, currentMonth, day);
+      const dateStr = formatDate(date);
+
+      const dayDiv = document.createElement("div");
+      dayDiv.classList.add("date-number");
+      dayDiv.textContent = day;
 
       // Highlight today
-      const today = new Date();
-      if(thisDate.toDateString() === today.toDateString()) {
-        dayCell.classList.add("today");
+      if(isToday(date)) {
+        dayDiv.classList.add("today");
       }
 
-      // Make day clickable
-      dayCell.style.cursor = "pointer";
-      dayCell.addEventListener("click", () => {
-        openDailyView(thisDate);
+      // If there are events on this day, show a dot or highlight
+      if(events[dateStr] && Object.keys(events[dateStr]).length > 0) {
+        const dot = document.createElement("span");
+        dot.style.backgroundColor = "#007bff";
+        dot.style.borderRadius = "50%";
+        dot.style.width = "8px";
+        dot.style.height = "8px";
+        dot.style.display = "inline-block";
+        dot.style.marginLeft = "5px";
+        dot.style.verticalAlign = "middle";
+        dayDiv.appendChild(dot);
+      }
+
+      dayDiv.style.cursor = "pointer";
+      dayDiv.addEventListener("click", () => {
+        showDailyView(date);
       });
 
-      calendarEl.appendChild(dayCell);
+      calendarEl.appendChild(dayDiv);
     }
   }
 
-  // Open daily view with tasks for a specific day
-  function openDailyView(date) {
-    selectedDate = date;
+  // Check if date is today
+  function isToday(date) {
+    return date.getFullYear() === today.getFullYear() &&
+           date.getMonth() === today.getMonth() &&
+           date.getDate() === today.getDate();
+  }
+
+  // Format date as YYYY-MM-DD
+  function formatDate(date) {
+    return date.toISOString().split("T")[0];
+  }
+
+  // Show daily view for a date
+  function showDailyView(date) {
     calendarView.style.display = "none";
     dailyView.style.display = "block";
 
-    dailyDateTitle.style.display = "block";
-    dailyDateTitle.textContent = date.toDateString();
+    // Hide month navigation buttons in day view
+    prevMonthBtn.style.display = "none";
+    nextMonthBtn.style.display = "none";
 
-    addEventForm.style.display = "none"; // hide form initially
+    selectedDate = date;
 
-    fetchTasksForDate(date);
+    // Update header to full selected date (like "Tuesday, May 21, 2025")
+    monthYearEl.textContent = selectedDate.toLocaleDateString('default', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    // Hide the old dailyDateTitle h2 since now header shows the date
+    dailyDateTitle.style.display = "none";
+
+    showFormBtn.style.display = "inline-block";
+    addEventForm.style.display = "none";
+
+    renderTasksForDate(date);
   }
 
-  // Fetch tasks for selected day from Firestore
-  async function fetchTasksForDate(date) {
-    tasksList.innerHTML = "<p>Loading tasks...</p>";
-    if(!currentUser) return;
+  // Render tasks for selected date in day view
+  function renderTasksForDate(date) {
+    tasksList.innerHTML = "";
+    const dateStr = formatDate(date);
 
-    // Build the doc id based on user and date for better lookup, or get all tasks for user and filter client side.
-    // We'll fetch all tasks and filter by date for simplicity.
-
-    try {
-      // Get all tasks for user
-      const docRef = doc(db, "calendar", currentUser.uid);
-      const docSnap = await getDoc(docRef);
-
-      if(docSnap.exists()) {
-        const allTasks = docSnap.data().tasks || [];
-        // Filter tasks by selected date
-        const dateStr = formatDate(selectedDate);
-        const filteredTasks = allTasks.filter(task => task.date === dateStr);
-
-        if(filteredTasks.length === 0) {
-          tasksList.innerHTML = "<p>No tasks for this day.</p>";
-          return;
-        }
-
-        // Sort tasks by time, but treat "All Day" as first
-        filteredTasks.sort((a,b) => {
-          if(a.time === "All Day") return -1;
-          if(b.time === "All Day") return 1;
-          return a.time.localeCompare(b.time);
-        });
-
-        tasksList.innerHTML = "";
-
-        filteredTasks.forEach(task => {
-          const taskRow = document.createElement("div");
-          taskRow.className = "taskRow";
-          taskRow.textContent = (task.time === "All Day" ? "[All Day] " : task.time + " ") + task.title;
-          taskRow.addEventListener("click", () => {
-            openDescModal(task);
-          });
-          tasksList.appendChild(taskRow);
-        });
-
-      } else {
-        tasksList.innerHTML = "<p>No tasks for this day.</p>";
-      }
-    } catch(err) {
-      console.error(err);
-      tasksList.innerHTML = "<p>Error loading tasks.</p>";
-    }
-  }
-
-  // Format Date as YYYY-MM-DD for storage
-  function formatDate(date) {
-    const y = date.getFullYear();
-    const m = (date.getMonth() + 1).toString().padStart(2, '0');
-    const d = date.getDate().toString().padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  }
-
-  // Open add/edit form
-  function openForm(editData) {
-    addEventForm.style.display = "block";
-    showFormBtn.style.display = "none";
-    formTitle.textContent = editData ? "Edit Task" : "Add Task";
-
-    if(editData) {
-      editingEventId = editData.id || null;
-      eventTitleInput.value = editData.title || "";
-      eventDescInput.value = editData.desc || "";
-      if(editData.time === "All Day") {
-        allDayCheckbox.checked = true;
-        eventTimeInput.value = "";
-        eventTimeInput.disabled = true;
-      } else {
-        allDayCheckbox.checked = false;
-        eventTimeInput.disabled = false;
-        eventTimeInput.value = editData.time || "";
-      }
-    } else {
-      editingEventId = null;
-      eventTitleInput.value = "";
-      eventDescInput.value = "";
-      eventTimeInput.value = "";
-      eventTimeInput.disabled = false;
-      allDayCheckbox.checked = false;
-    }
-  }
-
-  // Handle form submission
-  addEventForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if(!currentUser) return;
-
-    let timeVal = allDayCheckbox.checked ? "All Day" : eventTimeInput.value;
-    if(!timeVal && !allDayCheckbox.checked) {
-      alert("Please enter a time or select All Day.");
+    if(!events[dateStr]) {
+      tasksList.textContent = "No tasks for this day.";
       return;
     }
 
-    const newTask = {
-      id: editingEventId || crypto.randomUUID(),
-      date: formatDate(selectedDate),
-      time: timeVal,
-      title: eventTitleInput.value.trim(),
-      desc: eventDescInput.value.trim()
-    };
-
-    try {
-      const docRef = doc(db, "calendar", currentUser.uid);
-      const docSnap = await getDoc(docRef);
-      let tasks = [];
-      if(docSnap.exists()) {
-        tasks = docSnap.data().tasks || [];
-      }
-
-      if(editingEventId) {
-        // Replace existing task
-        const index = tasks.findIndex(t => t.id === editingEventId);
-        if(index !== -1) {
-          tasks[index] = newTask;
-        } else {
-          tasks.push(newTask);
-        }
-      } else {
-        tasks.push(newTask);
-      }
-
-      await setDoc(docRef, {tasks});
-
-      addEventForm.style.display = "none";
-      showFormBtn.style.display = "inline-block";
-
-      fetchTasksForDate(selectedDate);
-    } catch(err) {
-      alert("Error saving task: " + err.message);
+    const eventEntries = Object.entries(events[dateStr]);
+    if(eventEntries.length === 0) {
+      tasksList.textContent = "No tasks for this day.";
+      return;
     }
-  });
 
-  // Modal handling
-  let currentModalTask = null;
+    // Sort tasks by time
+    eventEntries.sort((a, b) => a[1].time.localeCompare(b[1].time));
 
-  function openDescModal(task) {
-    currentModalTask = task;
-    descTitle.textContent = task.title;
-    descText.textContent = task.desc || "(No description)";
-    descModal.style.display = "flex";
-    menuOptions.style.display = "none";
+    for(const [id, event] of eventEntries) {
+      const taskRow = document.createElement("div");
+      taskRow.classList.add("taskRow");
+      taskRow.textContent = event.time + " - " + event.title;
+      taskRow.addEventListener("click", () => {
+        openDescModal(id, event);
+      });
+      tasksList.appendChild(taskRow);
+    }
   }
 
+  // Open modal to show event description with menu options
+  function openDescModal(id, event) {
+    descTitle.textContent = event.title + " (" + event.time + ")";
+    descText.textContent = event.description || "No description.";
+    descModal.style.display = "flex";
+    editingEventId = id;
+
+    menuOptions.style.display = "none"; // hide menu initially
+  }
+
+  // Close modal
   closeDescModalBtn.addEventListener("click", () => {
     descModal.style.display = "none";
+    editingEventId = null;
   });
 
-  menuBtn.addEventListener("click", () => {
-    menuOptions.style.display = menuOptions.style.display === "block" ? "none" : "block";
-  });
-
-  editBtn.addEventListener("click", () => {
-    if(currentModalTask) {
-      openForm(currentModalTask);
-      descModal.style.display = "none";
+  // Toggle menu options
+  menuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if(menuOptions.style.display === "block") {
+      menuOptions.style.display = "none";
+    } else {
+      menuOptions.style.display = "block";
     }
   });
 
-  deleteBtn.addEventListener("click", async () => {
-    if(currentModalTask && currentUser) {
-      if(!confirm("Delete this task?")) return;
+  // Hide menu when clicking outside
+  window.addEventListener("click", () => {
+    menuOptions.style.display = "none";
+  });
 
-      try {
-        const docRef = doc(db, "calendar", currentUser.uid);
-        const docSnap = await getDoc(docRef);
-        if(docSnap.exists()) {
-          let tasks = docSnap.data().tasks || [];
-          tasks = tasks.filter(t => t.id !== currentModalTask.id);
-          await setDoc(docRef, {tasks});
-          descModal.style.display = "none";
-          fetchTasksForDate(selectedDate);
-        }
-      } catch(err) {
-        alert("Error deleting task: " + err.message);
+  // Edit button in modal
+  editBtn.addEventListener("click", () => {
+    if(editingEventId && selectedDate) {
+      const dateStr = formatDate(selectedDate);
+      const event = events[dateStr][editingEventId];
+      if(event) {
+        descModal.style.display = "none";
+        showFormBtn.style.display = "none";
+        addEventForm.style.display = "block";
+        formTitle.textContent = "Edit Task";
+
+        eventTimeInput.value = event.time;
+        eventTitleInput.value = event.title;
+        eventDescInput.value = event.description || "";
+        editingEventId = editingEventId;
       }
     }
   });
+
+  // Delete button in modal
+  deleteBtn.addEventListener("click", async () => {
+    if(editingEventId && selectedDate) {
+      const dateStr = formatDate(selectedDate);
+      delete events[dateStr][editingEventId];
+      if(Object.keys(events[dateStr]).length === 0) {
+        delete events[dateStr];
+      }
+      await saveUserData();
+      descModal.style.display = "none";
+      renderTasksForDate(selectedDate);
+      editingEventId = null;
+    }
+  });
+
+  // Back to month view button
+  backToMonthBtn.addEventListener("click", () => {
+    renderCalendar();
+  });
+
+  // Show add task form button
+  showFormBtn.addEventListener("click", () => {
+    addEventForm.style.display = "block";
+    showFormBtn.style.display = "none";
+    formTitle.textContent = "Add Task";
+    eventTimeInput.value = "";
+    eventTitleInput.value = "";
+    eventDescInput.value = "";
+    editingEventId = null;
+  });
+
+  // Add event form submit
+  addEventForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if(!selectedDate) return;
+
+    const dateStr = formatDate(selectedDate);
+    if(!events[dateStr]) events[dateStr] = {};
+
+    const id = editingEventId || crypto.randomUUID();
+
+    events[dateStr][id] = {
+      time: eventTimeInput.value,
+      title: eventTitleInput.value,
+      description: eventDescInput.value,
+    };
+
+    await saveUserData();
+
+    addEventForm.style.display = "none";
+    showFormBtn.style.display = "inline-block";
+
+    renderTasksForDate(selectedDate);
+  });
+
+  // Prev/Next month buttons
+  prevMonthBtn.addEventListener("click", () => {
+    currentMonth--;
+    if(currentMonth < 0) {
+      currentMonth = 11;
+      currentYear--;
+    }
+    renderCalendar();
+  });
+
+  nextMonthBtn.addEventListener("click", () => {
+    currentMonth++;
+    if(currentMonth > 11) {
+      currentMonth = 0;
+      currentYear++;
+    }
+    renderCalendar();
+  });
+
+  // Initial load
+  renderCalendar();
+
 </script>
 
 </body>
 </html>
 
+    
