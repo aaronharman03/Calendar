@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="manifest" href="manifest.json" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<link rel="apple-touch-icon" href="icon.png" />
+
+  <title>Simple Calendar</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f0f0f0;
+    }
+
+    header {
+      background: #007bff;
+      color: white;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      margin: 0;
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 1px;
+      background: #ccc;
+    }
+
+    .calendar-grid > div {
+      background: white;
+      padding: 10px;
+      text-align: right;
+      min-height: 80px;
+      cursor: pointer;
+    }
+
+    .day-name {
+      background: #eee;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .today {
+      background: #d0eaff;
+    }
+
+    #dailyView {
+      display: none;
+      padding: 1rem;
+    }
+
+    #tasksList .taskRow {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      cursor: pointer;
+    }
+
+    #addEventForm {
+      display: none;
+      margin-top: 1rem;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      box-sizing: border-box;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    #descModal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #descModalContent {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 400px;
+      width: 90%;
+      position: relative;
+    }
+
+    #menuOptions button:hover {
+      background: #f0f0f0;
+    }
+
+    .date-number {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <button id="prevMonth">&lt;</button>
+  <h1 id="monthYear">Month Year</h1>
+  <button id="nextMonth">&gt;</button>
+</header>
+
+<div id="calendarView">
+  <div class="calendar-grid" id="calendar"></div>
+</div>
+
+<div id="dailyView">
+  <button id="backToMonth">← Back to Month</button>
+  <h2 id="dailyDateTitle">Selected Date</h2>
+  <div id="tasksList"></div>
+
+  <button id="showFormBtn">+ Add Task</button>
+
+  <form id="addEventForm">
+    <h3 id="formTitle">Add Task</h3>
+    <label>Time:</label>
+    <input type="time" id="eventTime" required />
+    <label>Title:</label>
+    <input type="text" id="eventTitle" required />
+    <label>Description:</label>
+    <textarea id="eventDesc" rows="4"></textarea>
+    <button type="submit">Save</button>
+  </form>
+</div>
+
+<div id="descModal">
+  <div id="descModalContent">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h3 id="descTitle" style="margin: 0;"></h3>
+      <div style="position: relative;">
+        <button id="menuBtn" style="background: none; border: none; font-size: 1.5em; cursor: pointer;">⋯</button>
+        <div id="menuOptions" style="display: none; position: absolute; right: 0; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
+          <button id="editBtn" style="display:block; width:100%; padding: 5px 10px; border: none; background: white; text-align: left; cursor: pointer;">Edit</button>
+          <button id="deleteBtn" style="display:block; width:100%; padding: 5px 10px; border: none; background: white; text-align: left; cursor: pointer; color: red;">Delete</button>
+        </div>
+      </div>
+    </div>
+    <p id="descText" style="margin-top: 10px;"></p>
+    <button id="closeDescModal">Close</button>
+  </div>
+</div>
+
+<script>
+let currentDate = new Date();
+const calendarEl = document.getElementById("calendar");
+const monthYearEl = document.getElementById("monthYear");
+const calendarView = document.getElementById("calendarView");
+const dailyView = document.getElementById("dailyView");
+const dailyDateTitle = document.getElementById("dailyDateTitle");
+const tasksList = document.getElementById("tasksList");
+const addEventForm = document.getElementById("addEventForm");
+const showFormBtn = document.getElementById("showFormBtn");
+const eventTime = document.getElementById("eventTime");
+const eventTitle = document.getElementById("eventTitle");
+const eventDesc = document.getElementById("eventDesc");
+const formTitle = document.getElementById("formTitle");
+
+const descModal = document.getElementById("descModal");
+const descTitle = document.getElementById("descTitle");
+const descText = document.getElementById("descText");
+const closeDescModal = document.getElementById("closeDescModal");
+const menuBtn = document.getElementById("menuBtn");
+const menuOptions = document.getElementById("menuOptions");
+const editBtn = document.getElementById("editBtn");
+const deleteBtn = document.getElementById("deleteBtn");
+
+const backToMonth = document.getElementById("backToMonth");
+
+let selectedDate = null;
+let editingTaskId = null;
+const tasks = {};
+
+function renderCalendar() {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  calendarEl.innerHTML = "";
+
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  dayNames.forEach(day => {
+    const dayEl = document.createElement("div");
+    dayEl.className = "day-name";
+    dayEl.textContent = day;
+    calendarEl.appendChild(dayEl);
+  });
+
+  for (let i = 0; i < firstDay; i++) {
+    calendarEl.appendChild(document.createElement("div"));
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dayEl = document.createElement("div");
+    dayEl.className = "day";
+    const dateObj = new Date(year, month, day);
+    const today = new Date();
+    if (dateObj.toDateString() === today.toDateString()) {
+      dayEl.classList.add("today");
+    }
+
+    dayEl.innerHTML = `<div class="date-number">${day}</div>`;
+    dayEl.addEventListener("click", () => openDailyView(dateObj));
+    calendarEl.appendChild(dayEl);
+  }
+
+  monthYearEl.textContent = `${currentDate.toLocaleString("default", { month: "long" })} ${year}`;
+}
+
+function openDailyView(date) {
+  selectedDate = date.toISOString().split("T")[0];
+  dailyDateTitle.textContent = date.toDateString();
+  calendarView.style.display = "none";
+  dailyView.style.display = "block";
+  addEventForm.reset();
+  addEventForm.style.display = "none";
+  showFormBtn.style.display = "block";
+  editingTaskId = null;
+  renderTasks();
+}
+
+function renderTasks() {
+  tasksList.innerHTML = "";
+  const dayTasks = tasks[selectedDate] || [];
+  if (dayTasks.length === 0) {
+    tasksList.innerHTML = "<p style='text-align:center;'>No tasks yet.</p>";
+    return;
+  }
+
+  dayTasks
+    .sort((a, b) => a.time.localeCompare(b.time))
+    .forEach((task, index) => {
+      const taskRow = document.createElement("div");
+      taskRow.className = "taskRow";
+      taskRow.innerHTML = `<div><strong>${task.time}</strong> - ${task.title}</div>`;
+      taskRow.onclick = () => viewDesc(selectedDate, index);
+      tasksList.appendChild(taskRow);
+    });
+}
+
+function viewDesc(date, i) {
+  const task = tasks[date][i];
+  descTitle.textContent = `${task.time} - ${task.title}`;
+  descText.innerHTML = task.desc.replace(/\n/g, "<br>");
+
+  menuOptions.style.display = "none";
+
+  menuBtn.onclick = (e) => {
+    e.stopPropagation();
+    menuOptions.style.display = menuOptions.style.display === "block" ? "none" : "block";
+  };
+
+  document.addEventListener("click", () => {
+    menuOptions.style.display = "none";
+  }, { once: true });
+
+  editBtn.onclick = () => {
+    descModal.style.display = "none";
+    editTask(date, i);
+  };
+
+  deleteBtn.onclick = () => {
+    descModal.style.display = "none";
+    deleteTask(date, i);
+  };
+
+  descModal.style.display = "flex";
+}
+
+function editTask(date, i) {
+  const task = tasks[date][i];
+  editingTaskId = i;
+  eventTime.value = task.time;
+  eventTitle.value = task.title;
+  eventDesc.value = task.desc;
+  formTitle.textContent = "Edit Task";
+  addEventForm.style.display = "block";
+  showFormBtn.style.display = "none";
+}
+
+function deleteTask(date, i) {
+  tasks[date].splice(i, 1);
+  if (tasks[date].length === 0) delete tasks[date];
+  renderTasks();
+}
+
+addEventForm.onsubmit = e => {
+  e.preventDefault();
+  const newTask = {
+    time: eventTime.value,
+    title: eventTitle.value,
+    desc: eventDesc.value
+  };
+  if (!tasks[selectedDate]) tasks[selectedDate] = [];
+  if (editingTaskId !== null) {
+    tasks[selectedDate][editingTaskId] = newTask;
+    editingTaskId = null;
+  } else {
+    tasks[selectedDate].push(newTask);
+  }
+  addEventForm.reset();
+  addEventForm.style.display = "none";
+  showFormBtn.style.display = "block";
+  renderTasks();
+};
+
+showFormBtn.onclick = () => {
+  formTitle.textContent = "Add Task";
+  addEventForm.reset();
+  addEventForm.style.display = "block";
+  showFormBtn.style.display = "none";
+};
+
+backToMonth.onclick = () => {
+  dailyView.style.display = "none";
+  calendarView.style.display = "block";
+};
+
+document.getElementById("prevMonth").onclick = () => {
+  currentDate.setMonth(currentDate.getMonth() - 1);
+  renderCalendar();
+};
+
+document.getElementById("nextMonth").onclick = () => {
+  currentDate.setMonth(currentDate.getMonth() + 1);
+  renderCalendar();
+};
+
+closeDescModal.onclick = () => {
+  descModal.style.display = "none";
+};
+
+renderCalendar();
+</script>
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").then(() =>
+      console.log("Service Worker Registered")
+    );
+  }
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
