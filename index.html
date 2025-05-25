@@ -211,7 +211,7 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-  const auth = getAuth();
+  const auth = getAuth(app);
 
   // DOM references for auth and UI
   const loginDiv = document.getElementById("loginDiv");
@@ -315,48 +315,104 @@
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    // Add empty cells for days before first of month
+    // Add empty cells for days before first day
     for (let i = 0; i < firstDay; i++) {
-      const div = document.createElement("div");
-      calendar.appendChild(div);
+      const emptyDiv = document.createElement("div");
+      calendar.appendChild(emptyDiv);
     }
 
+    // Add day cells
     for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
       const div = document.createElement("div");
       div.textContent = day;
       div.classList.add("date-number");
-      if (year === (new Date()).getFullYear() &&
-          month === (new Date()).getMonth() &&
-          day === (new Date()).getDate()) {
+
+      // Highlight today
+      const today = new Date();
+      if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
         div.classList.add("today");
       }
-      div.addEventListener("click", () => openDailyView(year, month, day));
+
+      div.addEventListener("click", () => {
+        selectedDate = dateStr;
+        showDailyView(dateStr);
+      });
+
       calendar.appendChild(div);
     }
   }
 
-  function openDailyView(year, month, day) {
-    selectedDate = `${year}-${(month + 1).toString().padStart(2,"0")}-${day.toString().padStart(2,"0")}`;
-    dailyDateTitle.textContent = new Date(selectedDate).toLocaleDateString(undefined, { weekday: 'long', year:'numeric', month:'long', day:'numeric' });
+  function showDailyView(dateStr) {
+    dailyDateTitle.textContent = new Date(dateStr).toLocaleDateString();
     calendarView.style.display = "none";
     dailyView.style.display = "block";
-    showFormBtn.style.display = "inline-block";
+    renderTasks(dateStr);
     addEventForm.style.display = "none";
+    showFormBtn.style.display = "inline-block";
     editingTask = null;
-    renderTasksForDate();
   }
 
-  function renderTasksForDate() {
+  function renderTasks(dateStr) {
     tasksList.innerHTML = "";
-    if (!tasks[selectedDate]) return;
-    tasks[selectedDate].forEach((task, index) => {
+    if (!tasks[dateStr] || tasks[dateStr].length === 0) {
+      tasksList.textContent = "No tasks for this day.";
+      return;
+    }
+    tasks[dateStr].forEach((task, index) => {
       const div = document.createElement("div");
-      div.className = "taskRow";
+      div.classList.add("taskRow");
       div.textContent = `${task.time} - ${task.title}`;
-      div.addEventListener("click", () => openDescModal(selectedDate, index));
+      div.addEventListener("click", () => {
+        openDescModal(dateStr, index);
+      });
       tasksList.appendChild(div);
     });
   }
+
+  function openDescModal(dateStr, index) {
+    const task = tasks[dateStr][index];
+    descTitle.textContent = task.title;
+    descText.textContent = task.desc || "(No description)";
+    descModal.style.display = "flex";
+    editingTask = { date: dateStr, index };
+  }
+
+  closeDescModal.addEventListener("click", () => {
+    descModal.style.display = "none";
+    menuOptions.style.display = "none";
+  });
+
+  menuBtn.addEventListener("click", () => {
+    menuOptions.style.display = menuOptions.style.display === "block" ? "none" : "block";
+  });
+
+  editBtn.addEventListener("click", () => {
+    if (editingTask) {
+      const task = tasks[editingTask.date][editingTask.index];
+      addEventForm.style.display = "block";
+      showFormBtn.style.display = "none";
+      formTitle.textContent = "Edit Task";
+      eventTime.value = task.time;
+      eventTitle.value = task.title;
+      eventDesc.value = task.desc;
+      descModal.style.display = "none";
+    }
+  });
+
+  deleteBtn.addEventListener("click", () => {
+    if (editingTask) {
+      tasks[editingTask.date].splice(editingTask.index, 1);
+      saveTasksToFirestore();
+      renderTasks(editingTask.date);
+      descModal.style.display = "none";
+    }
+  });
+
+  backToMonthBtn.addEventListener("click", () => {
+    dailyView.style.display = "none";
+    calendarView.style.display = "block";
+  });
 
   showFormBtn.addEventListener("click", () => {
     addEventForm.style.display = "block";
@@ -370,82 +426,28 @@
 
   addEventForm.addEventListener("submit", (e) => {
     e.preventDefault();
-    if (!tasks[selectedDate]) tasks[selectedDate] = [];
-
-    const newTask = {
-      time: eventTime.value,
-      title: eventTitle.value,
-      desc: eventDesc.value,
-    };
-
-    if (editingTask) {
-      tasks[selectedDate][editingTask.index] = newTask;
-    } else {
-      tasks[selectedDate].push(newTask);
+    const time = eventTime.value;
+    const title = eventTitle.value.trim();
+    const desc = eventDesc.value.trim();
+    if (!time || !title) {
+      alert("Time and title are required.");
+      return;
     }
-
+    if (!tasks[selectedDate]) {
+      tasks[selectedDate] = [];
+    }
+    if (editingTask) {
+      tasks[selectedDate][editingTask.index] = { time, title, desc };
+    } else {
+      tasks[selectedDate].push({ time, title, desc });
+    }
     saveTasksToFirestore();
-    renderTasksForDate();
+    renderTasks(selectedDate);
     addEventForm.style.display = "none";
     showFormBtn.style.display = "inline-block";
+    editingTask = null;
   });
 
-  backToMonthBtn.addEventListener("click", () => {
-    dailyView.style.display = "none";
-    calendarView.style.display = "block";
-  });
-
-  // Description Modal logic
-  let currentDescTask = null;
-
-  function openDescModal(date, index) {
-    currentDescTask = { date, index };
-    const task = tasks[date][index];
-    descTitle.textContent = task.title;
-    descText.textContent = task.desc || "(No description)";
-    descModal.style.display = "flex";
-    menuOptions.style.display = "none";
-  }
-
-  closeDescModal.addEventListener("click", () => {
-    descModal.style.display = "none";
-  });
-
-  menuBtn.addEventListener("click", () => {
-    if (menuOptions.style.display === "none") {
-      menuOptions.style.display = "block";
-    } else {
-      menuOptions.style.display = "none";
-    }
-  });
-
-  editBtn.addEventListener("click", () => {
-    if (!currentDescTask) return;
-    const { date, index } = currentDescTask;
-    const task = tasks[date][index];
-    eventTime.value = task.time;
-    eventTitle.value = task.title;
-    eventDesc.value = task.desc;
-    formTitle.textContent = "Edit Task";
-    editingTask = { date, index };
-    addEventForm.style.display = "block";
-    showFormBtn.style.display = "none";
-    descModal.style.display = "none";
-  });
-
-  deleteBtn.addEventListener("click", () => {
-    if (!currentDescTask) return;
-    const { date, index } = currentDescTask;
-    tasks[date].splice(index, 1);
-    if (tasks[date].length === 0) {
-      delete tasks[date];
-    }
-    saveTasksToFirestore();
-    renderTasksForDate();
-    descModal.style.display = "none";
-  });
-
-  // Month navigation
   document.getElementById("prevMonth").addEventListener("click", () => {
     currentDate.setMonth(currentDate.getMonth() - 1);
     renderCalendar();
@@ -456,28 +458,29 @@
     renderCalendar();
   });
 
-  // FIRESTORE integration for user-specific data
+  // FIRESTORE FUNCTIONS
+
+  async function saveTasksToFirestore() {
+    if (!auth.currentUser) return;
+    const userDocRef = doc(db, "users", auth.currentUser.uid);
+    await setDoc(userDocRef, { tasks }, { merge: true });
+  }
 
   async function loadTasksFromFirestore() {
     if (!auth.currentUser) return;
-    const userDocRef = doc(db, "tasks", auth.currentUser.uid);
-    const userDocSnap = await getDoc(userDocRef);
-    if (userDocSnap.exists()) {
-      tasks = userDocSnap.data() || {};
+    const userDocRef = doc(db, "users", auth.currentUser.uid);
+    const userDoc = await getDoc(userDocRef);
+    if (userDoc.exists()) {
+      tasks = userDoc.data().tasks || {};
     } else {
       tasks = {};
     }
     renderCalendar();
   }
 
-  async function saveTasksToFirestore() {
-    if (!auth.currentUser) return;
-    const userDocRef = doc(db, "tasks", auth.currentUser.uid);
-    await setDoc(userDocRef, tasks);
-  }
+  // INITIAL RENDER
+  renderCalendar();
 
-  // Initial render if user is already logged in (handled in onAuthStateChanged)
 </script>
-
 </body>
 </html>
