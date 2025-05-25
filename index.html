@@ -293,10 +293,10 @@ function openDailyView(date) {
   editingTaskId = null;
   renderTasks();
 }
-
-function renderTasks() {
+async function renderTasks() {
   tasksList.innerHTML = "";
-  const dayTasks = tasks[selectedDate] || [];
+  const dayTasks = await loadTasksFromFirestore(selectedDate);
+  
   if (dayTasks.length === 0) {
     tasksList.innerHTML = "<p style='text-align:center;'>No tasks yet.</p>";
     return;
