@@ -182,6 +182,26 @@
 </div>
 
 <script>
+  
+<!-- Add these Firebase scripts in your HTML head or before your main script -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+
+  // Your Firebase config (keep exactly as you have it)
+  const firebaseConfig = {
+    apiKey: "AIzaSyD_u0nBXgOfoeK8O9OyZVXlpSF9_v7ovQU",
+    authDomain: "calendar-52769.firebaseapp.com",
+    projectId: "calendar-52769",
+    storageBucket: "calendar-52769.appspot.com",
+    messagingSenderId: "780853682335",
+    appId: "1:780853682335:web:0fcf319dd572c494bb02aa",
+    measurementId: "G-31LD4E1PGE"
+  };
+
+  // Initialize Firebase (namespaced style)
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
 let currentDate = new Date();
 const calendarEl = document.getElementById("calendar");
 const monthYearEl = document.getElementById("monthYear");
