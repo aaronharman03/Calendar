@@ -466,7 +466,24 @@
     for(const [id, event] of eventEntries) {
       const taskRow = document.createElement("div");
       taskRow.classList.add("taskRow");
-      taskRow.textContent = event.time + " - " + event.title;
+     const checkbox = document.createElement("input");
+checkbox.type = "checkbox";
+checkbox.checked = event.completed || false;
+checkbox.style.marginRight = "10px";
+
+const label = document.createElement("span");
+label.textContent = `${event.time} - ${event.title}`;
+label.style.textDecoration = checkbox.checked ? "line-through" : "none";
+
+checkbox.addEventListener("change", async () => {
+  event.completed = checkbox.checked;
+  label.style.textDecoration = checkbox.checked ? "line-through" : "none";
+  await saveUserData();
+});
+
+taskRow.appendChild(checkbox);
+taskRow.appendChild(label);
+
       taskRow.addEventListener("click", () => {
         openDescModal(id, event);
       });
