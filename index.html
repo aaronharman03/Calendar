@@ -451,34 +451,76 @@
   }
 
   // Render tasks for selected date in day view
-  function renderTasksForDate(date) {
-    tasksList.innerHTML = "";
-    const dateStr = formatDate(date);
+// Render tasks for selected date in day view
+function renderTasksForDate(date) {
+  tasksList.innerHTML = "";
+  const dateStr = formatDate(date);
 
-    if(!events[dateStr]) {
-      tasksList.textContent = "No tasks for this day.";
-      return;
-    }
-
-    const eventEntries = Object.entries(events[dateStr]);
-    if(eventEntries.length === 0) {
-      tasksList.textContent = "No tasks for this day.";
-      return;
-    }
-
-    // Sort tasks by time
-    eventEntries.sort((a, b) => a[1].time.localeCompare(b[1].time));
-
-    for(const [id, event] of eventEntries) {
-      const taskRow = document.createElement("div");
-      taskRow.classList.add("taskRow");
-      taskRow.textContent = event.time + " - " + event.title;
-      taskRow.addEventListener("click", () => {
-        openDescModal(id, event);
-      });
-      tasksList.appendChild(taskRow);
-    }
+  if(!events[dateStr]) {
+    tasksList.textContent = "No tasks for this day.";
+    return;
   }
+
+  const eventEntries = Object.entries(events[dateStr]);
+  if(eventEntries.length === 0) {
+    tasksList.textContent = "No tasks for this day.";
+    return;
+  }
+
+  // Sort tasks by time
+  eventEntries.sort((a, b) => a[1].time.localeCompare(b[1].time));
+
+  for(const [id, event] of eventEntries) {
+    const taskRow = document.createElement("div");
+    taskRow.classList.add("taskRow");
+
+    // Create checkbox
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.style.marginRight = "10px";
+
+    // Add a completed property to event object if not exist
+    if (typeof event.completed === 'undefined') {
+      event.completed = false;
+    }
+
+    checkbox.checked = event.completed;
+
+    // Create a span for the text to easily apply styles
+    const textSpan = document.createElement("span");
+    textSpan.textContent = event.time + " - " + event.title;
+
+    // Apply completed styles if checked
+    if (event.completed) {
+      textSpan.classList.add("task-completed");
+    }
+
+    // When checkbox toggled, update class and save
+    checkbox.addEventListener("change", async () => {
+      event.completed = checkbox.checked;
+      if (event.completed) {
+        textSpan.classList.add("task-completed");
+      } else {
+        textSpan.classList.remove("task-completed");
+      }
+      await saveUserData();
+    });
+
+    // Clear previous content and add checkbox + text span
+    taskRow.innerHTML = "";
+    taskRow.appendChild(checkbox);
+    taskRow.appendChild(textSpan);
+
+    // Also keep the old click behavior on text to open modal
+    textSpan.style.cursor = "pointer";
+    textSpan.addEventListener("click", () => {
+      openDescModal(id, event);
+    });
+
+    tasksList.appendChild(taskRow);
+  }
+}
+
 
   // Open modal to show event description with menu options
   function openDescModal(id, event) {
