@@ -463,16 +463,52 @@
     // Sort tasks by time
     eventEntries.sort((a, b) => a[1].time.localeCompare(b[1].time));
 
-    for(const [id, event] of eventEntries) {
-      const taskRow = document.createElement("div");
-      taskRow.classList.add("taskRow");
-      taskRow.textContent = event.time + " - " + event.title;
-      taskRow.addEventListener("click", () => {
-        openDescModal(id, event);
-      });
-      tasksList.appendChild(taskRow);
+   for(const [id, event] of eventEntries) {
+  const taskRow = document.createElement("div");
+  taskRow.classList.add("taskRow");
+  taskRow.style.display = "flex";
+  taskRow.style.alignItems = "center";
+  taskRow.style.justifyContent = "space-between";
+
+  // Create checkbox
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.checked = event.completed || false; // new completed flag
+
+  // When checkbox toggled, update style and save state
+  checkbox.addEventListener("change", async () => {
+    event.completed = checkbox.checked;
+    if(event.completed) {
+      taskText.style.color = "grey";
+      taskText.style.textDecoration = "line-through";
+    } else {
+      taskText.style.color = "";
+      taskText.style.textDecoration = "";
     }
+    await saveUserData();
+  });
+
+  // Create text span
+  const taskText = document.createElement("span");
+  taskText.textContent = event.time + " - " + event.title;
+  taskText.style.flexGrow = "1";
+  taskText.style.marginLeft = "8px";
+  if(event.completed) {
+    taskText.style.color = "grey";
+    taskText.style.textDecoration = "line-through";
   }
+
+  // Clicking text opens modal
+  taskText.style.cursor = "pointer";
+  taskText.addEventListener("click", () => {
+    openDescModal(id, event);
+  });
+
+  taskRow.appendChild(checkbox);
+  taskRow.appendChild(taskText);
+
+  tasksList.appendChild(taskRow);
+}
 
   // Open modal to show event description with menu options
   function openDescModal(id, event) {
