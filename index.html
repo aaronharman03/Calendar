@@ -62,17 +62,7 @@
     #dailyView {
       display: none;
       padding: 1rem;
-    
     }
-    #dailyView {
-  max-width: 600px;  /* Limit width to something comfortable */
-  margin: 1rem auto; /* Center horizontally */
-  background: white;
-  border-radius: 8px;
-  padding: 1rem;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
-
     #tasksList .taskRow {
       padding: 10px;
       border-bottom: 1px solid #ddd;
@@ -156,15 +146,6 @@
       cursor: pointer;
       margin-top: 0;
     }
-    .taskRow {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
   </style>
 </head>
 <body>
@@ -485,24 +466,7 @@
     for(const [id, event] of eventEntries) {
       const taskRow = document.createElement("div");
       taskRow.classList.add("taskRow");
-     const checkbox = document.createElement("input");
-checkbox.type = "checkbox";
-checkbox.checked = event.completed || false;
-checkbox.style.marginRight = "10px";
-
-const label = document.createElement("span");
-label.textContent = `${event.time} - ${event.title}`;
-label.style.textDecoration = checkbox.checked ? "line-through" : "none";
-
-checkbox.addEventListener("change", async () => {
-  event.completed = checkbox.checked;
-  label.style.textDecoration = checkbox.checked ? "line-through" : "none";
-  await saveUserData();
-});
-
-taskRow.appendChild(checkbox);
-taskRow.appendChild(label);
-
+      taskRow.textContent = event.time + " - " + event.title;
       taskRow.addEventListener("click", () => {
         openDescModal(id, event);
       });
