@@ -151,13 +151,17 @@
   color: grey;
   opacity: 0.6;
 }
-.taskRow {
+.task-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-  cursor: pointer;
+  gap: 10px;            /* space between checkbox and text */
+  padding: 5px 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.task-row input[type="checkbox"] {
+  margin: 0;
 }
 
   </style>
