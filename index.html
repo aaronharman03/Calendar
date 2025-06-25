@@ -477,15 +477,16 @@ for (const [id, event] of eventEntries) {
   checkbox.type = "checkbox";
   checkbox.addEventListener("click", e => e.stopPropagation());
 
-  const timeSpan = document.createElement("span");
+ const timeSpan = document.createElement("span");
 timeSpan.textContent = event.time;
-timeSpan.style.minWidth = "60px";
-timeSpan.style.textAlign = "left"; // Ensure time aligns left
+timeSpan.style.width = "70px";
+timeSpan.style.display = "inline-block";
 
 const titleSpan = document.createElement("span");
 titleSpan.textContent = event.title;
-// Remove flexGrow so it doesn't push the layout
-// titleSpan.style.flexGrow = "1";
+titleSpan.style.flex = "1";
+titleSpan.style.wordBreak = "break-word";
+
 
 
   taskRow.appendChild(checkbox);
