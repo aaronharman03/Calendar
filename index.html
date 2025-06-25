@@ -146,16 +146,6 @@
       cursor: pointer;
       margin-top: 0;
     }
-    #tasksList .taskRow {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-  cursor: pointer;
-
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
   </style>
 </head>
 <body>
@@ -454,57 +444,35 @@
     renderTasksForDate(date);
   }
 
-function renderTasksForDate(date) {
-  tasksList.innerHTML = "";
-  const dateStr = formatDate(date);
+  // Render tasks for selected date in day view
+  function renderTasksForDate(date) {
+    tasksList.innerHTML = "";
+    const dateStr = formatDate(date);
 
-  if(!events[dateStr]) {
-    tasksList.textContent = "No tasks for this day.";
-    return;
+    if(!events[dateStr]) {
+      tasksList.textContent = "No tasks for this day.";
+      return;
+    }
+
+    const eventEntries = Object.entries(events[dateStr]);
+    if(eventEntries.length === 0) {
+      tasksList.textContent = "No tasks for this day.";
+      return;
+    }
+
+    // Sort tasks by time
+    eventEntries.sort((a, b) => a[1].time.localeCompare(b[1].time));
+
+    for(const [id, event] of eventEntries) {
+      const taskRow = document.createElement("div");
+      taskRow.classList.add("taskRow");
+      taskRow.textContent = event.time + " - " + event.title;
+      taskRow.addEventListener("click", () => {
+        openDescModal(id, event);
+      });
+      tasksList.appendChild(taskRow);
+    }
   }
-
-  const eventEntries = Object.entries(events[dateStr]);
-  if(eventEntries.length === 0) {
-    tasksList.textContent = "No tasks for this day.";
-    return;
-  }
-
-  // Sort tasks by time
-  eventEntries.sort((a, b) => a[1].time.localeCompare(b[1].time));
-
-  for(const [id, event] of eventEntries) {
-    const taskRow = document.createElement("div");
-    taskRow.classList.add("taskRow");
-
-    // Create checkbox
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.style.marginRight = "10px";  // spacing between checkbox and text
-
-    // Create time span
-    const timeSpan = document.createElement("span");
-    timeSpan.textContent = event.time;
-    timeSpan.style.marginRight = "10px";
-
-    // Create title span
-    const titleSpan = document.createElement("span");
-    titleSpan.textContent = event.title;
-
-    // Append all to taskRow
-    taskRow.appendChild(checkbox);
-    taskRow.appendChild(timeSpan);
-    taskRow.appendChild(titleSpan);
-
-    // Click on task row opens description modal
-    taskRow.addEventListener("click", () => {
-      openDescModal(id, event);
-    });
-
-    tasksList.appendChild(taskRow);
-  }
-}
-
-
 
   // Open modal to show event description with menu options
   function openDescModal(id, event) {
