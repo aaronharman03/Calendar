@@ -465,21 +465,22 @@
       return;
     }
 
-    for (const [id, event] of eventEntries) {
+   const eventEntries = Object.entries(events[dateStr] || {});
+for (const [id, event] of eventEntries) {
   const taskRow = document.createElement("div");
   taskRow.classList.add("taskRow");
 
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
-  checkbox.addEventListener("click", e => e.stopPropagation()); // prevent modal from opening on checkbox click
+  checkbox.addEventListener("click", e => e.stopPropagation());
 
   const timeSpan = document.createElement("span");
   timeSpan.textContent = event.time;
-  timeSpan.style.minWidth = "60px"; // keep times aligned
+  timeSpan.style.minWidth = "60px";
 
   const titleSpan = document.createElement("span");
   titleSpan.textContent = event.title;
-  titleSpan.style.flexGrow = "1"; // title takes the remaining space
+  titleSpan.style.flexGrow = "1";
 
   taskRow.appendChild(checkbox);
   taskRow.appendChild(timeSpan);
@@ -491,6 +492,7 @@
 
   tasksList.appendChild(taskRow);
 }
+
 
   // Open modal to show event description with menu options
   function openDescModal(id, event) {
