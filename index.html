@@ -497,8 +497,19 @@ function renderTasksForDate(date) {
     checkbox.checked = event.completed;
 
     // Create a span for the text to easily apply styles
-    const textSpan = document.createElement("span");
-    textSpan.textContent = event.time + " - " + event.title;
+   const timeSpan = document.createElement("span");
+timeSpan.textContent = event.time;
+timeSpan.style.minWidth = "50px";  // or whatever width looks good
+timeSpan.style.marginRight = "10px";
+
+const titleSpan = document.createElement("span");
+titleSpan.textContent = event.title;
+
+// Apply completed styles if checked
+if (event.completed) {
+  timeSpan.classList.add("task-completed");
+  titleSpan.classList.add("task-completed");
+}
 
     // Apply completed styles if checked
     if (event.completed) {
