@@ -146,22 +146,6 @@
       cursor: pointer;
       margin-top: 0;
     }
-    .task-completed {
-  text-decoration: line-through;
-  color: grey;
-  opacity: 0.6;
-}
-.taskRow {
-  display: flex;
-  align-items: center;  /* vertical center */
-  gap: 10px;
-  width: 100%;
-  padding: 5px 10px;
-  box-sizing: border-box;
-}
-
-
-
   </style>
 </head>
 <body>
@@ -460,44 +444,35 @@
     renderTasksForDate(date);
   }
 
- function renderTasksForDate(date) {
-  const dailyTasksDiv = document.getElementById("daily-tasks");
-  dailyTasksDiv.innerHTML = "";  // clear old tasks
+  // Render tasks for selected date in day view
+  function renderTasksForDate(date) {
+    tasksList.innerHTML = "";
+    const dateStr = formatDate(date);
 
-  const dayEvents = tasks.filter(event => event.date === date);
+    if(!events[dateStr]) {
+      tasksList.textContent = "No tasks for this day.";
+      return;
+    }
 
-  dayEvents.forEach(event => {
-    const taskRow = document.createElement("div");
-    taskRow.classList.add("taskRow");
+    const eventEntries = Object.entries(events[dateStr]);
+    if(eventEntries.length === 0) {
+      tasksList.textContent = "No tasks for this day.";
+      return;
+    }
 
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.checked = event.completed;
-    checkbox.addEventListener("change", () => {
-      event.completed = checkbox.checked;
-      saveTasks();  // your existing save logic
-      renderTasksForDate(date);  // re-render
-    });
+    // Sort tasks by time
+    eventEntries.sort((a, b) => a[1].time.localeCompare(b[1].time));
 
-    const timeSpan = document.createElement("span");
-    timeSpan.textContent = event.time;
-    timeSpan.style.minWidth = "50px"; // adjust width as needed
-    timeSpan.style.marginRight = "10px";
-    if (event.completed) timeSpan.classList.add("task-completed");
-
-    const titleSpan = document.createElement("span");
-    titleSpan.textContent = event.title;
-    if (event.completed) titleSpan.classList.add("task-completed");
-
-    taskRow.appendChild(checkbox);
-    taskRow.appendChild(timeSpan);
-    taskRow.appendChild(titleSpan);
-
-    dailyTasksDiv.appendChild(taskRow);
-  });
-}
-
-
+    for(const [id, event] of eventEntries) {
+      const taskRow = document.createElement("div");
+      taskRow.classList.add("taskRow");
+      taskRow.textContent = event.time + " - " + event.title;
+      taskRow.addEventListener("click", () => {
+        openDescModal(id, event);
+      });
+      tasksList.appendChild(taskRow);
+    }
+  }
 
   // Open modal to show event description with menu options
   function openDescModal(id, event) {
@@ -630,4 +605,3 @@
 
 </body>
 </html>
-
