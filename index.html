@@ -465,25 +465,32 @@
       return;
     }
 
-    const eventEntries = Object.entries(events[dateStr]);
-    if(eventEntries.length === 0) {
-      tasksList.textContent = "No tasks for this day.";
-      return;
-    }
+    for (const [id, event] of eventEntries) {
+  const taskRow = document.createElement("div");
+  taskRow.classList.add("taskRow");
 
-    // Sort tasks by time
-    eventEntries.sort((a, b) => a[1].time.localeCompare(b[1].time));
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.addEventListener("click", e => e.stopPropagation()); // prevent modal from opening on checkbox click
 
-    for(const [id, event] of eventEntries) {
-      const taskRow = document.createElement("div");
-      taskRow.classList.add("taskRow");
-      taskRow.textContent = event.time + " - " + event.title;
-      taskRow.addEventListener("click", () => {
-        openDescModal(id, event);
-      });
-      tasksList.appendChild(taskRow);
-    }
-  }
+  const timeSpan = document.createElement("span");
+  timeSpan.textContent = event.time;
+  timeSpan.style.minWidth = "60px"; // keep times aligned
+
+  const titleSpan = document.createElement("span");
+  titleSpan.textContent = event.title;
+  titleSpan.style.flexGrow = "1"; // title takes the remaining space
+
+  taskRow.appendChild(checkbox);
+  taskRow.appendChild(timeSpan);
+  taskRow.appendChild(titleSpan);
+
+  taskRow.addEventListener("click", () => {
+    openDescModal(id, event);
+  });
+
+  tasksList.appendChild(taskRow);
+}
 
   // Open modal to show event description with menu options
   function openDescModal(id, event) {
