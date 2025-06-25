@@ -146,13 +146,18 @@
       cursor: pointer;
       margin-top: 0;
     }
-   #tasksList .taskRow {
+ #tasksList .taskRow {
   display: flex;
   align-items: center;
   gap: 10px;
-  text-align: left; /* Already there */
-  justify-content: flex-start; /* Add this to force left alignment */
+  text-align: left;
+  justify-content: flex-start; /* Align all to the left */
 }
+
+#tasksList .taskRow span {
+  text-align: left; /* Ensure children spans are left aligned */
+}
+
 
 
   </style>
@@ -473,12 +478,15 @@ for (const [id, event] of eventEntries) {
   checkbox.addEventListener("click", e => e.stopPropagation());
 
   const timeSpan = document.createElement("span");
-  timeSpan.textContent = event.time;
-  timeSpan.style.minWidth = "60px";
+timeSpan.textContent = event.time;
+timeSpan.style.minWidth = "60px";
+timeSpan.style.textAlign = "left"; // Ensure time aligns left
 
-  const titleSpan = document.createElement("span");
-  titleSpan.textContent = event.title;
-  titleSpan.style.flexGrow = "1";
+const titleSpan = document.createElement("span");
+titleSpan.textContent = event.title;
+// Remove flexGrow so it doesn't push the layout
+// titleSpan.style.flexGrow = "1";
+
 
   taskRow.appendChild(checkbox);
   taskRow.appendChild(timeSpan);
