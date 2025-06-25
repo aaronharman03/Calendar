@@ -464,9 +464,21 @@
     eventEntries.sort((a, b) => a[1].time.localeCompare(b[1].time));
 
     for(const [id, event] of eventEntries) {
-      const taskRow = document.createElement("div");
-      taskRow.classList.add("taskRow");
-      taskRow.textContent = event.time + " - " + event.title;
+     const taskRow = document.createElement("div");
+taskRow.classList.add("taskRow");
+taskRow.style.display = "flex";
+taskRow.style.alignItems = "center";
+taskRow.style.gap = "10px";
+
+const checkbox = document.createElement("input");
+checkbox.type = "checkbox";
+checkbox.style.margin = "0";
+
+const taskText = document.createElement("span");
+taskText.textContent = event.time + " - " + event.title;
+
+taskRow.appendChild(checkbox);
+taskRow.appendChild(taskText);
       taskRow.addEventListener("click", () => {
         openDescModal(id, event);
       });
