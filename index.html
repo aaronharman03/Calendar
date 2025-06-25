@@ -479,9 +479,13 @@ taskText.textContent = event.time + " - " + event.title;
 
 taskRow.appendChild(checkbox);
 taskRow.appendChild(taskText);
-      taskRow.addEventListener("click", () => {
-        openDescModal(id, event);
-      });
+     
+      taskRow.addEventListener("click", (e) => {
+  // Prevent clicks on checkbox from triggering the modal
+  if (e.target.tagName.toLowerCase() === "input") return;
+  openDescModal(id, event);
+});
+
       tasksList.appendChild(taskRow);
     }
   }
