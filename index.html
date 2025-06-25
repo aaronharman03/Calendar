@@ -147,15 +147,13 @@
       margin-top: 0;
     }
 #tasksList .taskRow {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 12px;
-  text-align: left;
+  gap: 10px;
   justify-content: flex-start;
+  text-align: left;
 }
+
 
 
 
@@ -485,7 +483,10 @@ timeSpan.style.display = "inline-block";
 const titleSpan = document.createElement("span");
 titleSpan.textContent = event.title;
 titleSpan.style.flex = "1";
-titleSpan.style.wordBreak = "break-word";
+titleSpan.style.whiteSpace = "nowrap";
+titleSpan.style.overflow = "hidden";
+titleSpan.style.textOverflow = "ellipsis";
+
 
 
 
