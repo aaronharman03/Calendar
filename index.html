@@ -146,16 +146,14 @@
       cursor: pointer;
       margin-top: 0;
     }
-    #tasksList .taskRow {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-  cursor: pointer;
-
+   #tasksList .taskRow {
   display: flex;
   align-items: center;
   gap: 10px;
-  text-align: left;
+  text-align: left; /* Already there */
+  justify-content: flex-start; /* Add this to force left alignment */
 }
+
 
   </style>
 </head>
