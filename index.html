@@ -476,38 +476,34 @@ function renderTasksForDate(date) {
     const taskRow = document.createElement("div");
     taskRow.classList.add("taskRow");
 
-    // Clear previous textContent approach
-
     // Create checkbox
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
-    checkbox.style.marginRight = "8px";
+    checkbox.style.marginRight = "10px";  // spacing between checkbox and text
 
     // Create time span
     const timeSpan = document.createElement("span");
     timeSpan.textContent = event.time;
-    timeSpan.style.minWidth = "50px";  // consistent width
+    timeSpan.style.marginRight = "10px";
 
     // Create title span
     const titleSpan = document.createElement("span");
     titleSpan.textContent = event.title;
-    titleSpan.style.flexGrow = "1";
 
-    // Append children in order: checkbox, time, title
+    // Append all to taskRow
     taskRow.appendChild(checkbox);
     taskRow.appendChild(timeSpan);
     taskRow.appendChild(titleSpan);
 
-    // Click event to open modal (but NOT on checkbox)
-    taskRow.addEventListener("click", (e) => {
-      if(e.target !== checkbox) {
-        openDescModal(id, event);
-      }
+    // Click on task row opens description modal
+    taskRow.addEventListener("click", () => {
+      openDescModal(id, event);
     });
 
     tasksList.appendChild(taskRow);
   }
 }
+
 
 
   // Open modal to show event description with menu options
