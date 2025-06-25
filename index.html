@@ -151,15 +151,15 @@
   color: grey;
   opacity: 0.6;
 }
-.task-row {
+.taskRow {
   display: flex;
-  align-items: center;   /* vertical center */
-  justify-content: flex-start;  /* ensure horizontal left align */
+  align-items: center;  /* vertical center */
   gap: 10px;
   width: 100%;
   padding: 5px 10px;
   box-sizing: border-box;
 }
+
 
 
   </style>
@@ -528,9 +528,10 @@ if (event.completed) {
     });
 
     // Clear previous content and add checkbox + text span
-    taskRow.innerHTML = "";
-    taskRow.appendChild(checkbox);
-    taskRow.appendChild(textSpan);
+   taskRow.innerHTML = "";
+taskRow.appendChild(checkbox);
+taskRow.appendChild(timeSpan);
+taskRow.appendChild(titleSpan);
 
     // Also keep the old click behavior on text to open modal
     textSpan.style.cursor = "pointer";
