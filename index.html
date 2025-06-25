@@ -146,40 +146,6 @@
       cursor: pointer;
       margin-top: 0;
     }
-.taskContent {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
-  width: 100%;
-}
-
-.taskRow {
-  padding: 5px 0;
-}
-
-.taskCheckbox {
-  margin: 0;
-}
-
-.taskTime {
-  font-size: 0.9em;
-  color: #888;
-  white-space: nowrap;
-}
-
-.taskTitle {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-
-
-
-
-
   </style>
 </head>
 <body>
@@ -477,55 +443,36 @@
 
     renderTasksForDate(date);
   }
-function renderTasksForDate(date, events, container) {
-  // Clear previous content
-  container.innerHTML = '';
 
-  // Filter events for the selected date
-  const filteredEvents = events.filter(event => {
-    const eventDate = new Date(event.date);
-    return eventDate.toDateString() === date.toDateString();
-  });
+  // Render tasks for selected date in day view
+  function renderTasksForDate(date) {
+    tasksList.innerHTML = "";
+    const dateStr = formatDate(date);
 
-  // If no tasks, show placeholder
-  if (filteredEvents.length === 0) {
-    const empty = document.createElement("div");
-    empty.textContent = "No tasks for this day.";
-    empty.className = "noTasks";
-    container.appendChild(empty);
-    return;
+    if(!events[dateStr]) {
+      tasksList.textContent = "No tasks for this day.";
+      return;
+    }
+
+    const eventEntries = Object.entries(events[dateStr]);
+    if(eventEntries.length === 0) {
+      tasksList.textContent = "No tasks for this day.";
+      return;
+    }
+
+    // Sort tasks by time
+    eventEntries.sort((a, b) => a[1].time.localeCompare(b[1].time));
+
+    for(const [id, event] of eventEntries) {
+      const taskRow = document.createElement("div");
+      taskRow.classList.add("taskRow");
+      taskRow.textContent = event.time + " - " + event.title;
+      taskRow.addEventListener("click", () => {
+        openDescModal(id, event);
+      });
+      tasksList.appendChild(taskRow);
+    }
   }
-
-  // Create task rows
-  filteredEvents.forEach(event => {
-    const taskRow = document.createElement("div");
-    taskRow.className = "taskRow";
-
-    const taskContent = document.createElement("div");
-    taskContent.className = "taskContent";
-
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.className = "taskCheckbox";
-    checkbox.checked = event.completed || false;
-
-    const timeSpan = document.createElement("span");
-    timeSpan.className = "taskTime";
-    timeSpan.textContent = formatTime(event.time); // e.g., "09:00 AM"
-
-    const titleSpan = document.createElement("span");
-    titleSpan.className = "taskTitle";
-    titleSpan.textContent = event.title;
-
-    // Append elements
-    taskContent.appendChild(checkbox);
-    taskContent.appendChild(timeSpan);
-    taskContent.appendChild(titleSpan);
-    taskRow.appendChild(taskContent);
-    container.appendChild(taskRow);
-  });
-}
-
 
   // Open modal to show event description with menu options
   function openDescModal(id, event) {
@@ -658,3 +605,4 @@ function renderTasksForDate(date, events, container) {
 
 </body>
 </html>
+
