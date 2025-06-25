@@ -146,13 +146,35 @@
       cursor: pointer;
       margin-top: 0;
     }
-#tasksList .taskRow {
+.taskContent {
   display: flex;
   align-items: center;
-  gap: 10px;
   justify-content: flex-start;
-  text-align: left;
+  gap: 10px;
+  width: 100%;
 }
+
+.taskRow {
+  padding: 5px 0;
+}
+
+.taskCheckbox {
+  margin: 0;
+}
+
+.taskTime {
+  font-size: 0.9em;
+  color: #888;
+  white-space: nowrap;
+}
+
+.taskTitle {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 
 
 
@@ -455,52 +477,55 @@
 
     renderTasksForDate(date);
   }
+function renderTasksForDate(date, events, container) {
+  // Clear previous content
+  container.innerHTML = '';
 
-  // Render tasks for selected date in day view
-  function renderTasksForDate(date) {
-    tasksList.innerHTML = "";
-    const dateStr = formatDate(date);
-
-    if(!events[dateStr]) {
-      tasksList.textContent = "No tasks for this day.";
-      return;
-    }
-
-   const eventEntries = Object.entries(events[dateStr] || {});
-for (const [id, event] of eventEntries) {
-  const taskRow = document.createElement("div");
-  taskRow.classList.add("taskRow");
-
-  const checkbox = document.createElement("input");
-  checkbox.type = "checkbox";
-  checkbox.addEventListener("click", e => e.stopPropagation());
-
- const timeSpan = document.createElement("span");
-timeSpan.textContent = event.time;
-timeSpan.style.width = "70px";
-timeSpan.style.display = "inline-block";
-
-const titleSpan = document.createElement("span");
-titleSpan.textContent = event.title;
-titleSpan.style.flex = "1";
-titleSpan.style.whiteSpace = "nowrap";
-titleSpan.style.overflow = "hidden";
-titleSpan.style.textOverflow = "ellipsis";
-
-
-
-
-  taskRow.appendChild(checkbox);
-  taskRow.appendChild(timeSpan);
-  taskRow.appendChild(titleSpan);
-
-  taskRow.addEventListener("click", () => {
-    openDescModal(id, event);
+  // Filter events for the selected date
+  const filteredEvents = events.filter(event => {
+    const eventDate = new Date(event.date);
+    return eventDate.toDateString() === date.toDateString();
   });
 
-  tasksList.appendChild(taskRow);
-}
+  // If no tasks, show placeholder
+  if (filteredEvents.length === 0) {
+    const empty = document.createElement("div");
+    empty.textContent = "No tasks for this day.";
+    empty.className = "noTasks";
+    container.appendChild(empty);
+    return;
   }
+
+  // Create task rows
+  filteredEvents.forEach(event => {
+    const taskRow = document.createElement("div");
+    taskRow.className = "taskRow";
+
+    const taskContent = document.createElement("div");
+    taskContent.className = "taskContent";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "taskCheckbox";
+    checkbox.checked = event.completed || false;
+
+    const timeSpan = document.createElement("span");
+    timeSpan.className = "taskTime";
+    timeSpan.textContent = formatTime(event.time); // e.g., "09:00 AM"
+
+    const titleSpan = document.createElement("span");
+    titleSpan.className = "taskTitle";
+    titleSpan.textContent = event.title;
+
+    // Append elements
+    taskContent.appendChild(checkbox);
+    taskContent.appendChild(timeSpan);
+    taskContent.appendChild(titleSpan);
+    taskRow.appendChild(taskContent);
+    container.appendChild(taskRow);
+  });
+}
+
 
   // Open modal to show event description with menu options
   function openDescModal(id, event) {
