@@ -32,31 +32,31 @@
       flex-grow: 1;
       text-align: center;
     }
- .calendar-header {
+.calendar-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 1rem;
     }
- .calendar-grid {
+.calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       gap: 1px;
       background: #ccc;
     }
- .calendar-grid > div {
+.calendar-grid > div {
       background: white;
       padding: 10px;
       text-align: right;
       min-height: 80px;
       cursor: pointer;
     }
- .day-name {
+.day-name {
       background: #eee;
       font-weight: bold;
       text-align: center;
     }
- .today {
+.today {
       background: #d0eaff;
     }
     #dailyView {
@@ -110,7 +110,7 @@
     #menuOptions button:hover {
       background: #f0f0f0;
     }
- .date-number {
+.date-number {
       font-weight: bold;
     }
     #loginDiv {
@@ -145,13 +145,13 @@
       cursor: pointer;
       margin-top: 0;
     }
- .repeat-days-container {
+.repeat-days-container {
       display: flex;
       gap: 5px;
       margin-top: 5px;
       flex-wrap: wrap;
     }
- .repeat-day-label {
+.repeat-day-label {
       display: inline-flex;
       align-items: center;
       background: #e0e0e0;
@@ -163,9 +163,19 @@
       user-select: none;
       margin-top: 0;
     }
- .repeat-day-label input {
+.repeat-day-label input {
       width: auto;
       margin-right: 5px;
+      margin-top: 0;
+    }
+.repeat-interval-container {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 5px;
+    }
+.repeat-interval-container input {
+      width: 60px;
       margin-top: 0;
     }
   </style>
@@ -221,6 +231,12 @@
       <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="4">Thu</label>
       <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="5">Fri</label>
       <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="6">Sat</label>
+    </div>
+
+    <label>Or repeat every:</label>
+    <div class="repeat-interval-container">
+      <input type="number" id="repeatInterval" min="1" placeholder="2" />
+      <span>days</span>
     </div>
 
     <button type="submit">Save</button>
@@ -279,16 +295,16 @@
     const email = emailInput.value;
     const password = passwordInput.value;
     signInWithEmailAndPassword(auth, email, password)
-   .then(() => console.log("Logged in"))
-   .catch(e => alert("Login failed: " + e.message));
+  .then(() => console.log("Logged in"))
+  .catch(e => alert("Login failed: " + e.message));
   });
 
   signupBtn.addEventListener("click", () => {
     const email = emailInput.value;
     const password = passwordInput.value;
     createUserWithEmailAndPassword(auth, email, password)
-   .then(() => alert("Signup successful. Please login."))
-   .catch(e => alert("Signup failed: " + e.message));
+  .then(() => alert("Signup successful. Please login."))
+  .catch(e => alert("Signup failed: " + e.message));
   });
 
   logoutBtn.addEventListener("click", () => signOut(auth));
@@ -327,6 +343,7 @@
   const eventTimeInput = document.getElementById("eventTime");
   const eventTitleInput = document.getElementById("eventTitle");
   const eventDescInput = document.getElementById("eventDesc");
+  const repeatIntervalInput = document.getElementById("repeatInterval");
   const formTitle = document.getElementById("formTitle");
 
   const descModal = document.getElementById("descModal");
@@ -430,283 +447,4 @@
     nextMonthBtn.style.display = "none";
     selectedDate = date;
 
-    monthYearEl.textContent = selectedDate.toLocaleDateString('default', {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-    });
-
-    dailyDateTitle.style.display = "none";
-    showFormBtn.style.display = "inline-block";
-    addEventForm.style.display = "none";
-    renderTasksForDate(date);
-  }
-
-  function renderTasksForDate(date) {
-    tasksList.innerHTML = "";
-    const dateStr = formatDate(date);
-
-    if(!events[dateStr] || Object.keys(events[dateStr]).length === 0) {
-      tasksList.textContent = "No tasks for this day.";
-      return;
-    }
-
-    const eventEntries = Object.entries(events[dateStr]);
-    eventEntries.sort((a, b) => a[1].time.localeCompare(b[1].time));
-
-    for(const [id, event] of eventEntries) {
-      const taskRow = document.createElement("div");
-      taskRow.classList.add("taskRow");
-      taskRow.textContent = event.time + " - " + event.title;
-      taskRow.addEventListener("click", () => openDescModal(id, event));
-      tasksList.appendChild(taskRow);
-    }
-  }
-
-  function openDescModal(id, event) {
-    descTitle.textContent = event.title + " (" + event.time + ")";
-    descText.innerHTML = (event.description || "No description.").replace(/\n/g, '<br>');
-    descModal.style.display = "flex";
-    editingEventId = id;
-    menuOptions.style.display = "none";
-  }
-
-  closeDescModalBtn.addEventListener("click", () => {
-    descModal.style.display = "none";
-    editingEventId = null;
-  });
-
-  menuBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    menuOptions.style.display = menuOptions.style.display === "block"? "none" : "block";
-  });
-
-  window.addEventListener("click", () => menuOptions.style.display = "none");
-
-  function resetForm() {
-    eventTimeInput.value = "";
-    eventTitleInput.value = "";
-    eventDescInput.value = "";
-    document.querySelectorAll('input[name="repeatDays"]').forEach(cb => cb.checked = false);
-  }
-
-  editBtn.addEventListener("click", () => {
-    if(editingEventId && selectedDate) {
-      const dateStr = formatDate(selectedDate);
-      const event = events[dateStr][editingEventId];
-      if(event) {
-        descModal.style.display = "none";
-        showFormBtn.style.display = "none";
-        addEventForm.style.display = "block";
-        formTitle.textContent = event.repeatGroupId? "Edit Recurring Task" : "Edit Task";
-        eventTimeInput.value = event.time;
-        eventTitleInput.value = event.title;
-        eventDescInput.value = event.description || "";
-        document.querySelectorAll('input[name="repeatDays"]').forEach(cb => cb.checked = false);
-      }
-    }
-  });
-
-  deleteBtn.addEventListener("click", async () => {
-    if(!editingEventId ||!selectedDate) return;
-
-    const dateStr = formatDate(selectedDate);
-    const currentEvent = events[dateStr]?.[editingEventId];
-    if (!currentEvent) return;
-
-    if (currentEvent.repeatGroupId) {
-      const deleteEntireSeries = confirm(
-        "This is a recurring task.\n\n" +
-        "• Click OK to delete the ENTIRE series.\n" +
-        "• Click Cancel to delete ONLY this single occurrence."
-      );
-
-      if (deleteEntireSeries) {
-        const targetGroupId = currentEvent.repeatGroupId;
-        Object.keys(events).forEach(dayKey => {
-          Object.keys(events[dayKey]).forEach(taskKey => {
-            if (events[dayKey][taskKey].repeatGroupId === targetGroupId) {
-              delete events[dayKey][taskKey];
-            }
-          });
-          if (Object.keys(events[dayKey]).length === 0) delete events[dayKey];
-        });
-      } else {
-        delete events[dateStr][editingEventId];
-        if(Object.keys(events[dateStr]).length === 0) delete events[dateStr];
-      }
-    } else {
-      delete events[dateStr][editingEventId];
-      if(Object.keys(events[dateStr]).length === 0) delete events[dateStr];
-    }
-
-    await saveUserData();
-    descModal.style.display = "none";
-    editingEventId = null;
-    renderCalendar();
-  });
-
-  // UPDATED: Delete all repeating tasks - now handles old tasks without repeatGroupId
-  deleteAllRepeatingBtn.addEventListener("click", async () => {
-    menuOptions.style.display = "none";
-
-    // Count repeating tasks - either has repeatGroupId OR appears multiple times with same title/time
-    const taskFingerprints = {};
-    let repeatingCount = 0;
-
-    Object.keys(events).forEach(dateKey => {
-      Object.values(events[dateKey]).forEach(task => {
-        if (task.repeatGroupId) {
-          repeatingCount++;
-        } else {
-          // Fallback: detect old repeating tasks by title+time combo
-          const fingerprint = `${task.title}|${task.time}`;
-          taskFingerprints[fingerprint] = (taskFingerprints[fingerprint] || 0) + 1;
-        }
-      });
-    });
-
-    // Add tasks that appear multiple times but lack repeatGroupId
-    Object.values(taskFingerprints).forEach(count => {
-      if (count > 1) repeatingCount += count;
-    });
-
-    if(repeatingCount === 0) {
-      alert("No repeating tasks found.");
-      return;
-    }
-
-    const confirmed = confirm(
-      `This will permanently delete ALL ${repeatingCount} repeating tasks across your entire calendar.\n\n` +
-      `This includes tasks created before the repeat system was updated.\n\n` +
-      `This action cannot be undone. Continue?`
-    );
-
-    if(!confirmed) return;
-
-    // Delete 1: tasks with repeatGroupId
-    Object.keys(events).forEach(dateKey => {
-      Object.keys(events[dateKey]).forEach(taskKey => {
-        if (events[dateKey][taskKey].repeatGroupId) {
-          delete events[dateKey][taskKey];
-        }
-      });
-    });
-
-    // Delete 2: tasks that repeat by title+time but no repeatGroupId
-    const fingerprintsToDelete = Object.keys(taskFingerprints).filter(fp => taskFingerprints[fp] > 1);
-    Object.keys(events).forEach(dateKey => {
-      Object.keys(events[dateKey]).forEach(taskKey => {
-        const task = events[dateKey][taskKey];
-        const fp = `${task.title}|${task.time}`;
-        if (fingerprintsToDelete.includes(fp)) {
-          delete events[dateKey][taskKey];
-        }
-      });
-      if (Object.keys(events[dateKey]).length === 0) delete events[dateKey];
-    });
-
-    await saveUserData();
-    descModal.style.display = "none";
-    editingEventId = null;
-    renderTasksForDate(selectedDate);
-    renderCalendar();
-    alert(`Deleted ${repeatingCount} repeating tasks.`);
-  });
-
-  backToMonthBtn.addEventListener("click", () => renderCalendar());
-
-  showFormBtn.addEventListener("click", () => {
-    addEventForm.style.display = "block";
-    showFormBtn.style.display = "none";
-    formTitle.textContent = "Add Task";
-    resetForm();
-    editingEventId = null;
-  });
-
-  addEventForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if(!selectedDate) return;
-
-    const time = eventTimeInput.value;
-    const title = eventTitleInput.value;
-    const description = eventDescInput.value;
-    const checkedBoxes = document.querySelectorAll('input[name="repeatDays"]:checked');
-    const repeatDays = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
-
-    if(editingEventId) {
-      const dateStr = formatDate(selectedDate);
-      const oldEvent = events[dateStr][editingEventId];
-
-      if (oldEvent?.repeatGroupId) {
-        const updateEntireSeries = confirm(
-          "This is a recurring task.\n\n" +
-          "• Click OK to update the ENTIRE series.\n" +
-          "• Click Cancel to update ONLY this occurrence."
-        );
-
-        if (updateEntireSeries) {
-          const targetGroupId = oldEvent.repeatGroupId;
-          Object.keys(events).forEach(dayKey => {
-            Object.keys(events[dayKey]).forEach(taskKey => {
-              if (events[dayKey][taskKey].repeatGroupId === targetGroupId) {
-                events[dayKey][taskKey] = {...events[dayKey][taskKey], time, title, description };
-              }
-            });
-          });
-        } else {
-          events[dateStr][editingEventId] = { time, title, description, repeatGroupId: null };
-        }
-      } else {
-        events[dateStr][editingEventId] = { time, title, description };
-      }
-
-    } else if(repeatDays.length > 0) {
-      const loopDate = new Date(selectedDate);
-      const uniqueGroupId = crypto.randomUUID();
-
-      for (let i = 0; i < 90; i++) {
-        const currentDayOfWeek = loopDate.getDay();
-        if (repeatDays.includes(currentDayOfWeek)) {
-          const dateStr = formatDate(loopDate);
-          if (!events[dateStr]) events[dateStr] = {};
-          const id = crypto.randomUUID();
-          events[dateStr][id] = { time, title, description, repeatGroupId: uniqueGroupId };
-        }
-        loopDate.setDate(loopDate.getDate() + 1);
-      }
-    } else {
-      const dateStr = formatDate(selectedDate);
-      if(!events[dateStr]) events[dateStr] = {};
-      const id = crypto.randomUUID();
-      events[dateStr][id] = { time, title, description };
-    }
-
-    await saveUserData();
-    addEventForm.style.display = "none";
-    showFormBtn.style.display = "inline-block";
-    renderCalendar();
-    showDailyView(selectedDate);
-  });
-
-  prevMonthBtn.addEventListener("click", () => {
-    currentMonth--;
-    if(currentMonth < 0) {
-      currentMonth = 11;
-      currentYear--;
-    }
-    renderCalendar();
-  });
-
-  nextMonthBtn.addEventListener("click", () => {
-    currentMonth++;
-    if(currentMonth > 11) {
-      currentMonth = 0;
-      currentYear++;
-    }
-    renderCalendar();
-  });
-
-  renderCalendar();
-</script>
-
-</body>
-</html>
+    monthYear
