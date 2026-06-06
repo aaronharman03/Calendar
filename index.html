@@ -295,16 +295,16 @@
     const email = emailInput.value;
     const password = passwordInput.value;
     signInWithEmailAndPassword(auth, email, password)
- .then(() => console.log("Logged in"))
- .catch(e => alert("Login failed: " + e.message));
+.then(() => console.log("Logged in"))
+.catch(e => alert("Login failed: " + e.message));
   });
 
   signupBtn.addEventListener("click", () => {
     const email = emailInput.value;
     const password = passwordInput.value;
     createUserWithEmailAndPassword(auth, email, password)
- .then(() => alert("Signup successful. Please login."))
- .catch(e => alert("Signup failed: " + e.message));
+.then(() => alert("Signup successful. Please login."))
+.catch(e => alert("Signup failed: " + e.message));
   });
 
   logoutBtn.addEventListener("click", () => signOut(auth));
@@ -422,7 +422,9 @@
 
       if(isToday(date)) dayDiv.classList.add("today");
 
-      if(events[dateStr] && Object.keys(events[dateStr]).length > 0) {
+      // Check if any tasks exist for this date
+      const hasEvents = checkDateHasEvents(date);
+      if(hasEvents) {
         const dot = document.createElement("span");
         dot.style.backgroundColor = "#007bff";
         dot.style.borderRadius = "50%";
@@ -438,6 +440,39 @@
       dayDiv.addEventListener("click", () => showDailyView(date));
       calendarEl.appendChild(dayDiv);
     }
+  }
+
+  function checkDateHasEvents(date) {
+    const dateStr = formatDate(date);
+    // Check one-time tasks
+    if(events[dateStr] && Object.keys(events[dateStr]).some(id =>!events[dateStr][id].isRule)) {
+      return true;
+    }
+    // Check rules
+    for(const ruleDate of Object.keys(events)) {
+      for(const task of Object.values(events[ruleDate])) {
+        if (!task.isRule) continue;
+        if (taskOccursOnDate(task, date)) return true;
+      }
+    }
+    return false;
+  }
+
+  function taskOccursOnDate(task, date) {
+    const currentDate = new Date(date);
+    const startDate = new Date(task.startDate);
+    if (currentDate < startDate) return false;
+    if (task.endDate && currentDate > new Date(task.endDate)) return false;
+    if (task.exceptions && task.exceptions.includes(formatDate(date))) return false;
+
+    if (task.repeatType === 'weekday') {
+      return task.days.includes(currentDate.getDay());
+    } else if (task.repeatType === 'interval') {
+      const diffTime = currentDate - startDate;
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays % task.intervalDays === 0;
+    }
+    return false;
   }
 
   function isToday(date) {
@@ -472,20 +507,45 @@
   function renderTasksForDate(date) {
     tasksList.innerHTML = "";
     const dateStr = formatDate(date);
+    const displayTasks = [];
 
-    if(!events[dateStr] || Object.keys(events[dateStr]).length === 0) {
+    // 1. Collect one-time tasks for this exact date
+    if(events[dateStr]) {
+      Object.entries(events[dateStr]).forEach(([id, event]) => {
+        if (!event.isRule) {
+          displayTasks.push({...event, id, sourceDate: dateStr, isInstance: false });
+        }
+      });
+    }
+
+    // 2. Check all rules to see if they apply to this date
+    Object.keys(events).forEach(ruleDate => {
+      Object.entries(events[ruleDate]).forEach(([id, event]) => {
+        if (!event.isRule) return;
+        if (taskOccursOnDate(event, date)) {
+          displayTasks.push({
+           ...event,
+            id,
+            sourceDate: ruleDate,
+            isInstance: true,
+            instanceDate: dateStr
+          });
+        }
+      });
+    });
+
+    if(displayTasks.length === 0) {
       tasksList.textContent = "No tasks for this day.";
       return;
     }
 
-    const eventEntries = Object.entries(events[dateStr]);
-    eventEntries.sort((a, b) => a[1].time.localeCompare(b[1].time));
+    displayTasks.sort((a, b) => a.time.localeCompare(b.time));
 
-    for(const [id, event] of eventEntries) {
+    for(const task of displayTasks) {
       const taskRow = document.createElement("div");
       taskRow.classList.add("taskRow");
-      taskRow.textContent = event.time + " - " + event.title;
-      taskRow.addEventListener("click", () => openDescModal(id, event));
+      taskRow.textContent = task.time + " - " + task.title;
+      taskRow.addEventListener("click", () => openDescModal(task.id, task));
       tasksList.appendChild(taskRow);
     }
   }
@@ -495,12 +555,14 @@
     let repeatInfo = "";
     if (event.repeatType === 'interval') {
       repeatInfo = `\n\nRepeats every ${event.intervalDays} days`;
-    } else if (event.repeatGroupId && event.repeatType === 'weekday') {
-      repeatInfo = `\n\nRepeating task`;
+    } else if (event.repeatType === 'weekday') {
+      const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      const days = event.days.map(d => dayNames[d]).join(', ');
+      repeatInfo = `\n\nRepeats: ${days}`;
     }
     descText.innerHTML = (event.description || "No description.").replace(/\n/g, '<br>') + repeatInfo;
     descModal.style.display = "flex";
-    editingEventId = id;
+    editingEventId = event;
     menuOptions.style.display = "none";
   }
 
@@ -526,30 +588,28 @@
 
   editBtn.addEventListener("click", () => {
     if(editingEventId && selectedDate) {
-      const dateStr = formatDate(selectedDate);
-      const event = events[dateStr][editingEventId];
-      if(event) {
-        descModal.style.display = "none";
-        showFormBtn.style.display = "none";
-        addEventForm.style.display = "block";
-        formTitle.textContent = event.repeatGroupId? "Edit Recurring Task" : "Edit Task";
-        eventTimeInput.value = event.time;
-        eventTitleInput.value = event.title;
-        eventDescInput.value = event.description || "";
-        repeatIntervalInput.value = event.intervalDays || "";
-        document.querySelectorAll('input[name="repeatDays"]').forEach(cb => cb.checked = false);
-      }
+      const event = editingEventId;
+      descModal.style.display = "none";
+      showFormBtn.style.display = "none";
+      addEventForm.style.display = "block";
+      formTitle.textContent = event.isRule? "Edit Recurring Task" : "Edit Task";
+      eventTimeInput.value = event.time;
+      eventTitleInput.value = event.title;
+      eventDescInput.value = event.description || "";
+      repeatIntervalInput.value = event.intervalDays || "";
+      document.querySelectorAll('input[name="repeatDays"]').forEach(cb => {
+        cb.checked = event.days? event.days.includes(parseInt(cb.value)) : false;
+      });
     }
   });
 
   deleteBtn.addEventListener("click", async () => {
     if(!editingEventId ||!selectedDate) return;
 
+    const event = editingEventId;
     const dateStr = formatDate(selectedDate);
-    const currentEvent = events[dateStr]?.[editingEventId];
-    if (!currentEvent) return;
 
-    if (currentEvent.repeatGroupId) {
+    if (event.isRule) {
       const deleteEntireSeries = confirm(
         "This is a recurring task.\n\n" +
         "• Click OK to delete the ENTIRE series.\n" +
@@ -557,59 +617,41 @@
       );
 
       if (deleteEntireSeries) {
-        const targetGroupId = currentEvent.repeatGroupId;
-        Object.keys(events).forEach(dayKey => {
-          Object.keys(events[dayKey]).forEach(taskKey => {
-            if (events[dayKey][taskKey].repeatGroupId === targetGroupId) {
-              delete events[dayKey][taskKey];
-            }
-          });
-          if (Object.keys(events[dayKey]).length === 0) delete events[dayKey];
-        });
+        delete events[event.sourceDate][event.id];
+        if(Object.keys(events[event.sourceDate]).length === 0) delete events[event.sourceDate];
       } else {
-        delete events[dateStr][editingEventId];
-        if(Object.keys(events[dateStr]).length === 0) delete events[dateStr];
+        if (!event.exceptions) event.exceptions = [];
+        event.exceptions.push(dateStr);
       }
     } else {
-      delete events[dateStr][editingEventId];
-      if(Object.keys(events[dateStr]).length === 0) delete events[dateStr];
+      delete events[event.sourceDate][event.id];
+      if(Object.keys(events[event.sourceDate]).length === 0) delete events[event.sourceDate];
     }
 
     await saveUserData();
     descModal.style.display = "none";
     editingEventId = null;
     renderCalendar();
+    showDailyView(selectedDate);
   });
 
   deleteAllRepeatingBtn.addEventListener("click", async () => {
     menuOptions.style.display = "none";
 
-    const taskFingerprints = {};
-    let repeatingCount = 0;
-
+    let ruleCount = 0;
     Object.keys(events).forEach(dateKey => {
       Object.values(events[dateKey]).forEach(task => {
-        if (task.repeatGroupId) {
-          repeatingCount++;
-        } else {
-          const fingerprint = `${task.title}|${task.time}`;
-          taskFingerprints[fingerprint] = (taskFingerprints[fingerprint] || 0) + 1;
-        }
+        if (task.isRule) ruleCount++;
       });
     });
 
-    Object.values(taskFingerprints).forEach(count => {
-      if (count > 1) repeatingCount += count;
-    });
-
-    if(repeatingCount === 0) {
+    if(ruleCount === 0) {
       alert("No repeating tasks found.");
       return;
     }
 
     const confirmed = confirm(
-      `This will permanently delete ALL ${repeatingCount} repeating tasks across your entire calendar.\n\n` +
-      `This includes tasks created before the repeat system was updated.\n\n` +
+      `This will permanently delete ALL ${ruleCount} repeating task rules.\n\n` +
       `This action cannot be undone. Continue?`
     );
 
@@ -617,18 +659,7 @@
 
     Object.keys(events).forEach(dateKey => {
       Object.keys(events[dateKey]).forEach(taskKey => {
-        if (events[dateKey][taskKey].repeatGroupId) {
-          delete events[dateKey][taskKey];
-        }
-      });
-    });
-
-    const fingerprintsToDelete = Object.keys(taskFingerprints).filter(fp => taskFingerprints[fp] > 1);
-    Object.keys(events).forEach(dateKey => {
-      Object.keys(events[dateKey]).forEach(taskKey => {
-        const task = events[dateKey][taskKey];
-        const fp = `${task.title}|${task.time}`;
-        if (fingerprintsToDelete.includes(fp)) {
+        if (events[dateKey][taskKey].isRule) {
           delete events[dateKey][taskKey];
         }
       });
@@ -640,7 +671,7 @@
     editingEventId = null;
     renderTasksForDate(selectedDate);
     renderCalendar();
-    alert(`Deleted ${repeatingCount} repeating tasks.`);
+    alert(`Deleted ${ruleCount} repeating rules.`);
   });
 
   backToMonthBtn.addEventListener("click", () => renderCalendar());
@@ -664,68 +695,62 @@
     const repeatDays = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
     const repeatInterval = parseInt(repeatIntervalInput.value);
 
+    // Editing existing task
     if(editingEventId) {
-      const dateStr = formatDate(selectedDate);
-      const oldEvent = events[dateStr][editingEventId];
+      const event = editingEventId;
 
-      if (oldEvent?.repeatGroupId) {
-        const updateEntireSeries = confirm(
-          "This is a recurring task.\n\n" +
-          "• Click OK to update the ENTIRE series.\n" +
-          "• Click Cancel to update ONLY this occurrence."
-        );
-
-        if (updateEntireSeries) {
-          const targetGroupId = oldEvent.repeatGroupId;
-          Object.keys(events).forEach(dayKey => {
-            Object.keys(events[dayKey]).forEach(taskKey => {
-              if (events[dayKey][taskKey].repeatGroupId === targetGroupId) {
-                events[dayKey][taskKey] = {...events[dayKey][taskKey], time, title, description };
-              }
-            });
-          });
-        } else {
-          events[dateStr][editingEventId] = { time, title, description, repeatGroupId: null };
+      if (event.isRule) {
+        // Update the rule itself
+        event.time = time;
+        event.title = title;
+        event.description = description;
+        if (repeatDays.length > 0) {
+          event.repeatType = 'weekday';
+          event.days = repeatDays;
+          delete event.intervalDays;
+        } else if (repeatInterval && repeatInterval > 0) {
+          event.repeatType = 'interval';
+          event.intervalDays = repeatInterval;
+          delete event.days;
         }
       } else {
-        events[dateStr][editingEventId] = { time, title, description };
+        events[event.sourceDate][event.id] = { time, title, description };
       }
 
     } else if(repeatDays.length > 0) {
-      const loopDate = new Date(selectedDate);
-      const uniqueGroupId = crypto.randomUUID();
-
-      for (let i = 0; i < 90; i++) {
-        const currentDayOfWeek = loopDate.getDay();
-        if (repeatDays.includes(currentDayOfWeek)) {
-          const dateStr = formatDate(loopDate);
-          if (!events[dateStr]) events[dateStr] = {};
-          const id = crypto.randomUUID();
-          events[dateStr][id] = { time, title, description, repeatGroupId: uniqueGroupId, repeatType: 'weekday' };
-        }
-        loopDate.setDate(loopDate.getDate() + 1);
-      }
+      // Save as 1 weekday rule
+      const dateStr = formatDate(selectedDate);
+      if(!events[dateStr]) events[dateStr] = {};
+      const id = crypto.randomUUID();
+      events[dateStr][id] = {
+        time,
+        title,
+        description,
+        isRule: true,
+        repeatType: 'weekday',
+        days: repeatDays,
+        startDate: dateStr,
+        endDate: null
+      };
 
     } else if(repeatInterval && repeatInterval > 0) {
-      const loopDate = new Date(selectedDate);
-      const uniqueGroupId = crypto.randomUUID();
-
-      for (let i = 0; i < 90; i += repeatInterval) {
-        const dateStr = formatDate(loopDate);
-        if (!events[dateStr]) events[dateStr] = {};
-        const id = crypto.randomUUID();
-        events[dateStr][id] = {
-          time,
-          title,
-          description,
-          repeatGroupId: uniqueGroupId,
-          repeatType: 'interval',
-          intervalDays: repeatInterval
-        };
-        loopDate.setDate(loopDate.getDate() + repeatInterval);
-      }
+      // Save as 1 interval rule
+      const dateStr = formatDate(selectedDate);
+      if(!events[dateStr]) events[dateStr] = {};
+      const id = crypto.randomUUID();
+      events[dateStr][id] = {
+        time,
+        title,
+        description,
+        isRule: true,
+        repeatType: 'interval',
+        intervalDays: repeatInterval,
+        startDate: dateStr,
+        endDate: null
+      };
 
     } else {
+      // One-time task
       const dateStr = formatDate(selectedDate);
       if(!events[dateStr]) events[dateStr] = {};
       const id = crypto.randomUUID();
