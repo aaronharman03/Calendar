@@ -356,7 +356,7 @@
   const deleteBtn = document.getElementById("deleteBtn");
   const deleteAllRepeatingBtn = document.getElementById("deleteAllRepeatingBtn");
 
-  let editingEventId = null;
+  let editingEventData = null; // FIX: store id + sourceDate + full event
 
   const today = new Date();
   currentYear = today.getFullYear();
@@ -422,7 +422,6 @@
 
       if(isToday(date)) dayDiv.classList.add("today");
 
-      // Check if any tasks exist for this date
       const hasEvents = checkDateHasEvents(date);
       if(hasEvents) {
         const dot = document.createElement("span");
@@ -444,11 +443,9 @@
 
   function checkDateHasEvents(date) {
     const dateStr = formatDate(date);
-    // Check one-time tasks
     if(events[dateStr] && Object.keys(events[dateStr]).some(id =>!events[dateStr][id].isRule)) {
       return true;
     }
-    // Check rules
     for(const ruleDate of Object.keys(events)) {
       for(const task of Object.values(events[ruleDate])) {
         if (!task.isRule) continue;
@@ -509,7 +506,6 @@
     const dateStr = formatDate(date);
     const displayTasks = [];
 
-    // 1. Collect one-time tasks for this exact date
     if(events[dateStr]) {
       Object.entries(events[dateStr]).forEach(([id, event]) => {
         if (!event.isRule) {
@@ -518,13 +514,12 @@
       });
     }
 
-    // 2. Check all rules to see if they apply to this date
     Object.keys(events).forEach(ruleDate => {
       Object.entries(events[ruleDate]).forEach(([id, event]) => {
         if (!event.isRule) return;
         if (taskOccursOnDate(event, date)) {
           displayTasks.push({
-           ...event,
+          ...event,
             id,
             sourceDate: ruleDate,
             isInstance: true,
@@ -545,30 +540,30 @@
       const taskRow = document.createElement("div");
       taskRow.classList.add("taskRow");
       taskRow.textContent = task.time + " - " + task.title;
-      taskRow.addEventListener("click", () => openDescModal(task.id, task));
+      taskRow.addEventListener("click", () => openDescModal(task));
       tasksList.appendChild(taskRow);
     }
   }
 
-  function openDescModal(id, event) {
-    descTitle.textContent = event.title + " (" + event.time + ")";
+  function openDescModal(eventData) {
+    descTitle.textContent = eventData.title + " (" + eventData.time + ")";
     let repeatInfo = "";
-    if (event.repeatType === 'interval') {
-      repeatInfo = `\n\nRepeats every ${event.intervalDays} days`;
-    } else if (event.repeatType === 'weekday') {
+    if (eventData.repeatType === 'interval') {
+      repeatInfo = `\n\nRepeats every ${eventData.intervalDays} days`;
+    } else if (eventData.repeatType === 'weekday') {
       const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-      const days = event.days.map(d => dayNames[d]).join(', ');
+      const days = eventData.days.map(d => dayNames[d]).join(', ');
       repeatInfo = `\n\nRepeats: ${days}`;
     }
-    descText.innerHTML = (event.description || "No description.").replace(/\n/g, '<br>') + repeatInfo;
+    descText.innerHTML = (eventData.description || "No description.").replace(/\n/g, '<br>') + repeatInfo;
     descModal.style.display = "flex";
-    editingEventId = event;
+    editingEventData = eventData; // FIX: store full object
     menuOptions.style.display = "none";
   }
 
   closeDescModalBtn.addEventListener("click", () => {
     descModal.style.display = "none";
-    editingEventId = null;
+    editingEventData = null;
   });
 
   menuBtn.addEventListener("click", (e) => {
@@ -587,8 +582,8 @@
   }
 
   editBtn.addEventListener("click", () => {
-    if(editingEventId && selectedDate) {
-      const event = editingEventId;
+    if(editingEventData && selectedDate) {
+      const event = editingEventData;
       descModal.style.display = "none";
       showFormBtn.style.display = "none";
       addEventForm.style.display = "block";
@@ -604,9 +599,9 @@
   });
 
   deleteBtn.addEventListener("click", async () => {
-    if(!editingEventId ||!selectedDate) return;
+    if(!editingEventData ||!selectedDate) return;
 
-    const event = editingEventId;
+    const event = editingEventData;
     const dateStr = formatDate(selectedDate);
 
     if (event.isRule) {
@@ -630,7 +625,7 @@
 
     await saveUserData();
     descModal.style.display = "none";
-    editingEventId = null;
+    editingEventData = null;
     renderCalendar();
     showDailyView(selectedDate);
   });
@@ -668,7 +663,7 @@
 
     await saveUserData();
     descModal.style.display = "none";
-    editingEventId = null;
+    editingEventData = null;
     renderTasksForDate(selectedDate);
     renderCalendar();
     alert(`Deleted ${ruleCount} repeating rules.`);
@@ -681,7 +676,7 @@
     showFormBtn.style.display = "none";
     formTitle.textContent = "Add Task";
     resetForm();
-    editingEventId = null;
+    editingEventData = null;
   });
 
   addEventForm.addEventListener("submit", async (e) => {
@@ -695,12 +690,10 @@
     const repeatDays = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
     const repeatInterval = parseInt(repeatIntervalInput.value);
 
-    // Editing existing task
-    if(editingEventId) {
-      const event = editingEventId;
+    if(editingEventData) {
+      const event = editingEventData;
 
       if (event.isRule) {
-        // Update the rule itself
         event.time = time;
         event.title = title;
         event.description = description;
@@ -718,7 +711,6 @@
       }
 
     } else if(repeatDays.length > 0) {
-      // Save as 1 weekday rule
       const dateStr = formatDate(selectedDate);
       if(!events[dateStr]) events[dateStr] = {};
       const id = crypto.randomUUID();
@@ -734,7 +726,6 @@
       };
 
     } else if(repeatInterval && repeatInterval > 0) {
-      // Save as 1 interval rule
       const dateStr = formatDate(selectedDate);
       if(!events[dateStr]) events[dateStr] = {};
       const id = crypto.randomUUID();
@@ -750,7 +741,6 @@
       };
 
     } else {
-      // One-time task
       const dateStr = formatDate(selectedDate);
       if(!events[dateStr]) events[dateStr] = {};
       const id = crypto.randomUUID();
