@@ -295,16 +295,16 @@
     const email = emailInput.value;
     const password = passwordInput.value;
     signInWithEmailAndPassword(auth, email, password)
-  .then(() => console.log("Logged in"))
-  .catch(e => alert("Login failed: " + e.message));
+ .then(() => console.log("Logged in"))
+ .catch(e => alert("Login failed: " + e.message));
   });
 
   signupBtn.addEventListener("click", () => {
     const email = emailInput.value;
     const password = passwordInput.value;
     createUserWithEmailAndPassword(auth, email, password)
-  .then(() => alert("Signup successful. Please login."))
-  .catch(e => alert("Signup failed: " + e.message));
+ .then(() => alert("Signup successful. Please login."))
+ .catch(e => alert("Signup failed: " + e.message));
   });
 
   logoutBtn.addEventListener("click", () => signOut(auth));
@@ -361,6 +361,18 @@
   const today = new Date();
   currentYear = today.getFullYear();
   currentMonth = today.getMonth();
+
+  // Make weekday checkboxes and interval mutually exclusive
+  document.querySelectorAll('input[name="repeatDays"]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (cb.checked) repeatIntervalInput.value = "";
+    });
+  });
+  repeatIntervalInput.addEventListener('input', () => {
+    if (repeatIntervalInput.value) {
+      document.querySelectorAll('input[name="repeatDays"]').forEach(cb => cb.checked = false);
+    }
+  });
 
   async function loadUserData() {
     if(!currentUser) return;
@@ -447,4 +459,306 @@
     nextMonthBtn.style.display = "none";
     selectedDate = date;
 
-    monthYear
+    monthYearEl.textContent = selectedDate.toLocaleDateString('default', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    dailyDateTitle.style.display = "none";
+    showFormBtn.style.display = "inline-block";
+    addEventForm.style.display = "none";
+    renderTasksForDate(date);
+  }
+
+  function renderTasksForDate(date) {
+    tasksList.innerHTML = "";
+    const dateStr = formatDate(date);
+
+    if(!events[dateStr] || Object.keys(events[dateStr]).length === 0) {
+      tasksList.textContent = "No tasks for this day.";
+      return;
+    }
+
+    const eventEntries = Object.entries(events[dateStr]);
+    eventEntries.sort((a, b) => a[1].time.localeCompare(b[1].time));
+
+    for(const [id, event] of eventEntries) {
+      const taskRow = document.createElement("div");
+      taskRow.classList.add("taskRow");
+      taskRow.textContent = event.time + " - " + event.title;
+      taskRow.addEventListener("click", () => openDescModal(id, event));
+      tasksList.appendChild(taskRow);
+    }
+  }
+
+  function openDescModal(id, event) {
+    descTitle.textContent = event.title + " (" + event.time + ")";
+    let repeatInfo = "";
+    if (event.repeatType === 'interval') {
+      repeatInfo = `\n\nRepeats every ${event.intervalDays} days`;
+    } else if (event.repeatGroupId && event.repeatType === 'weekday') {
+      repeatInfo = `\n\nRepeating task`;
+    }
+    descText.innerHTML = (event.description || "No description.").replace(/\n/g, '<br>') + repeatInfo;
+    descModal.style.display = "flex";
+    editingEventId = id;
+    menuOptions.style.display = "none";
+  }
+
+  closeDescModalBtn.addEventListener("click", () => {
+    descModal.style.display = "none";
+    editingEventId = null;
+  });
+
+  menuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    menuOptions.style.display = menuOptions.style.display === "block"? "none" : "block";
+  });
+
+  window.addEventListener("click", () => menuOptions.style.display = "none");
+
+  function resetForm() {
+    eventTimeInput.value = "";
+    eventTitleInput.value = "";
+    eventDescInput.value = "";
+    repeatIntervalInput.value = "";
+    document.querySelectorAll('input[name="repeatDays"]').forEach(cb => cb.checked = false);
+  }
+
+  editBtn.addEventListener("click", () => {
+    if(editingEventId && selectedDate) {
+      const dateStr = formatDate(selectedDate);
+      const event = events[dateStr][editingEventId];
+      if(event) {
+        descModal.style.display = "none";
+        showFormBtn.style.display = "none";
+        addEventForm.style.display = "block";
+        formTitle.textContent = event.repeatGroupId? "Edit Recurring Task" : "Edit Task";
+        eventTimeInput.value = event.time;
+        eventTitleInput.value = event.title;
+        eventDescInput.value = event.description || "";
+        repeatIntervalInput.value = event.intervalDays || "";
+        document.querySelectorAll('input[name="repeatDays"]').forEach(cb => cb.checked = false);
+      }
+    }
+  });
+
+  deleteBtn.addEventListener("click", async () => {
+    if(!editingEventId ||!selectedDate) return;
+
+    const dateStr = formatDate(selectedDate);
+    const currentEvent = events[dateStr]?.[editingEventId];
+    if (!currentEvent) return;
+
+    if (currentEvent.repeatGroupId) {
+      const deleteEntireSeries = confirm(
+        "This is a recurring task.\n\n" +
+        "• Click OK to delete the ENTIRE series.\n" +
+        "• Click Cancel to delete ONLY this single occurrence."
+      );
+
+      if (deleteEntireSeries) {
+        const targetGroupId = currentEvent.repeatGroupId;
+        Object.keys(events).forEach(dayKey => {
+          Object.keys(events[dayKey]).forEach(taskKey => {
+            if (events[dayKey][taskKey].repeatGroupId === targetGroupId) {
+              delete events[dayKey][taskKey];
+            }
+          });
+          if (Object.keys(events[dayKey]).length === 0) delete events[dayKey];
+        });
+      } else {
+        delete events[dateStr][editingEventId];
+        if(Object.keys(events[dateStr]).length === 0) delete events[dateStr];
+      }
+    } else {
+      delete events[dateStr][editingEventId];
+      if(Object.keys(events[dateStr]).length === 0) delete events[dateStr];
+    }
+
+    await saveUserData();
+    descModal.style.display = "none";
+    editingEventId = null;
+    renderCalendar();
+  });
+
+  deleteAllRepeatingBtn.addEventListener("click", async () => {
+    menuOptions.style.display = "none";
+
+    const taskFingerprints = {};
+    let repeatingCount = 0;
+
+    Object.keys(events).forEach(dateKey => {
+      Object.values(events[dateKey]).forEach(task => {
+        if (task.repeatGroupId) {
+          repeatingCount++;
+        } else {
+          const fingerprint = `${task.title}|${task.time}`;
+          taskFingerprints[fingerprint] = (taskFingerprints[fingerprint] || 0) + 1;
+        }
+      });
+    });
+
+    Object.values(taskFingerprints).forEach(count => {
+      if (count > 1) repeatingCount += count;
+    });
+
+    if(repeatingCount === 0) {
+      alert("No repeating tasks found.");
+      return;
+    }
+
+    const confirmed = confirm(
+      `This will permanently delete ALL ${repeatingCount} repeating tasks across your entire calendar.\n\n` +
+      `This includes tasks created before the repeat system was updated.\n\n` +
+      `This action cannot be undone. Continue?`
+    );
+
+    if(!confirmed) return;
+
+    Object.keys(events).forEach(dateKey => {
+      Object.keys(events[dateKey]).forEach(taskKey => {
+        if (events[dateKey][taskKey].repeatGroupId) {
+          delete events[dateKey][taskKey];
+        }
+      });
+    });
+
+    const fingerprintsToDelete = Object.keys(taskFingerprints).filter(fp => taskFingerprints[fp] > 1);
+    Object.keys(events).forEach(dateKey => {
+      Object.keys(events[dateKey]).forEach(taskKey => {
+        const task = events[dateKey][taskKey];
+        const fp = `${task.title}|${task.time}`;
+        if (fingerprintsToDelete.includes(fp)) {
+          delete events[dateKey][taskKey];
+        }
+      });
+      if (Object.keys(events[dateKey]).length === 0) delete events[dateKey];
+    });
+
+    await saveUserData();
+    descModal.style.display = "none";
+    editingEventId = null;
+    renderTasksForDate(selectedDate);
+    renderCalendar();
+    alert(`Deleted ${repeatingCount} repeating tasks.`);
+  });
+
+  backToMonthBtn.addEventListener("click", () => renderCalendar());
+
+  showFormBtn.addEventListener("click", () => {
+    addEventForm.style.display = "block";
+    showFormBtn.style.display = "none";
+    formTitle.textContent = "Add Task";
+    resetForm();
+    editingEventId = null;
+  });
+
+  addEventForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if(!selectedDate) return;
+
+    const time = eventTimeInput.value;
+    const title = eventTitleInput.value;
+    const description = eventDescInput.value;
+    const checkedBoxes = document.querySelectorAll('input[name="repeatDays"]:checked');
+    const repeatDays = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
+    const repeatInterval = parseInt(repeatIntervalInput.value);
+
+    if(editingEventId) {
+      const dateStr = formatDate(selectedDate);
+      const oldEvent = events[dateStr][editingEventId];
+
+      if (oldEvent?.repeatGroupId) {
+        const updateEntireSeries = confirm(
+          "This is a recurring task.\n\n" +
+          "• Click OK to update the ENTIRE series.\n" +
+          "• Click Cancel to update ONLY this occurrence."
+        );
+
+        if (updateEntireSeries) {
+          const targetGroupId = oldEvent.repeatGroupId;
+          Object.keys(events).forEach(dayKey => {
+            Object.keys(events[dayKey]).forEach(taskKey => {
+              if (events[dayKey][taskKey].repeatGroupId === targetGroupId) {
+                events[dayKey][taskKey] = {...events[dayKey][taskKey], time, title, description };
+              }
+            });
+          });
+        } else {
+          events[dateStr][editingEventId] = { time, title, description, repeatGroupId: null };
+        }
+      } else {
+        events[dateStr][editingEventId] = { time, title, description };
+      }
+
+    } else if(repeatDays.length > 0) {
+      const loopDate = new Date(selectedDate);
+      const uniqueGroupId = crypto.randomUUID();
+
+      for (let i = 0; i < 90; i++) {
+        const currentDayOfWeek = loopDate.getDay();
+        if (repeatDays.includes(currentDayOfWeek)) {
+          const dateStr = formatDate(loopDate);
+          if (!events[dateStr]) events[dateStr] = {};
+          const id = crypto.randomUUID();
+          events[dateStr][id] = { time, title, description, repeatGroupId: uniqueGroupId, repeatType: 'weekday' };
+        }
+        loopDate.setDate(loopDate.getDate() + 1);
+      }
+
+    } else if(repeatInterval && repeatInterval > 0) {
+      const loopDate = new Date(selectedDate);
+      const uniqueGroupId = crypto.randomUUID();
+
+      for (let i = 0; i < 90; i += repeatInterval) {
+        const dateStr = formatDate(loopDate);
+        if (!events[dateStr]) events[dateStr] = {};
+        const id = crypto.randomUUID();
+        events[dateStr][id] = {
+          time,
+          title,
+          description,
+          repeatGroupId: uniqueGroupId,
+          repeatType: 'interval',
+          intervalDays: repeatInterval
+        };
+        loopDate.setDate(loopDate.getDate() + repeatInterval);
+      }
+
+    } else {
+      const dateStr = formatDate(selectedDate);
+      if(!events[dateStr]) events[dateStr] = {};
+      const id = crypto.randomUUID();
+      events[dateStr][id] = { time, title, description };
+    }
+
+    await saveUserData();
+    addEventForm.style.display = "none";
+    showFormBtn.style.display = "inline-block";
+    renderCalendar();
+    showDailyView(selectedDate);
+  });
+
+  prevMonthBtn.addEventListener("click", () => {
+    currentMonth--;
+    if(currentMonth < 0) {
+      currentMonth = 11;
+      currentYear--;
+    }
+    renderCalendar();
+  });
+
+  nextMonthBtn.addEventListener("click", () => {
+    currentMonth++;
+    if(currentMonth > 11) {
+      currentMonth = 0;
+      currentYear++;
+    }
+    renderCalendar();
+  });
+
+  renderCalendar();
+</script>
+
+</body>
+</html>
