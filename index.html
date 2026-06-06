@@ -7,172 +7,38 @@
   <link rel="apple-touch-icon" href="icon-192.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <link rel="apple-touch-icon" href="icon.png" />
   <base href="/Calendar/">
-
   <title>Simple Calendar with Smart Repeats</title>
   <style>
-    body {
-      font-family: sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #f0f0f0;
-    }
-    header {
-      background: #007bff;
-      color: white;
-      padding: 1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    header h1 {
-      margin: 0;
-      font-size: 1.5rem;
-      flex-grow: 1;
-      text-align: center;
-    }
-   .calendar-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem;
-    }
-   .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 1px;
-      background: #ccc;
-    }
-   .calendar-grid > div {
-      background: white;
-      padding: 10px;
-      text-align: right;
-      min-height: 80px;
-      cursor: pointer;
-    }
-   .day-name {
-      background: #eee;
-      font-weight: bold;
-      text-align: center;
-    }
-   .today {
-      background: #d0eaff;
-    }
-    #dailyView {
-      display: none;
-      padding: 1rem;
-    }
-    #tasksList.taskRow {
-      padding: 10px;
-      border-bottom: 1px solid #ddd;
-      cursor: pointer;
-    }
-    #addEventForm {
-      display: none;
-      margin-top: 1rem;
-    }
-    label {
-      display: block;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-    input, textarea {
-      width: 100%;
-      padding: 8px;
-      margin-top: 4px;
-      box-sizing: border-box;
-      font-size: 16px;
-    }
-    button {
-      margin-top: 10px;
-      padding: 8px 12px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    #descModal {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      justify-content: center;
-      align-items: center;
-    }
-    #descModalContent {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      max-width: 400px;
-      width: 90%;
-      position: relative;
-    }
-    #menuOptions button:hover {
-      background: #f0f0f0;
-    }
-   .date-number {
-      font-weight: bold;
-    }
-    #loginDiv {
-      padding: 1rem;
-      background: #eee;
-      margin-bottom: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-    #loginDiv input {
-      padding: 8px;
-      font-size: 16px;
-      flex-grow: 1;
-      min-width: 180px;
-    }
-    #loginDiv button {
-      padding: 8px 16px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    #dailyViewTop {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 1rem 1rem 1rem;
-    }
-    #dailyViewTop button {
-      padding: 8px 16px;
-      font-size: 16px;
-      cursor: pointer;
-      margin-top: 0;
-    }
-   .repeat-days-container {
-      display: flex;
-      gap: 5px;
-      margin-top: 5px;
-      flex-wrap: wrap;
-    }
-   .repeat-day-label {
-      display: inline-flex;
-      align-items: center;
-      background: #e0e0e0;
-      padding: 6px 10px;
-      border-radius: 4px;
-      font-weight: normal;
-      font-size: 14px;
-      cursor: pointer;
-      user-select: none;
-      margin-top: 0;
-    }
-   .repeat-day-label input {
-      width: auto;
-      margin-right: 5px;
-      margin-top: 0;
-    }
+    body { font-family: sans-serif; margin: 0; padding: 0; background: #f0f0f0; }
+    header { background: #007bff; color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { margin: 0; font-size: 1.5rem; flex-grow: 1; text-align: center; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; }
+    .calendar-grid > div { background: white; padding: 10px; text-align: right; min-height: 80px; cursor: pointer; }
+    .day-name { background: #eee; font-weight: bold; text-align: center; }
+    .today { background: #d0eaff; }
+    #dailyView { display: none; padding: 1rem; }
+    #addEventForm { display: none; margin-top: 1rem; }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input, textarea { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; font-size: 16px; }
+    button { margin-top: 10px; padding: 8px 12px; cursor: pointer; font-size: 16px; }
+    #descModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; }
+    #descModalContent { background: white; padding: 20px; border-radius: 8px; max-width: 400px; width: 90%; position: relative; }
+    #menuOptions button:hover { background: #f0f0f0; }
+    .date-number { font-weight: bold; }
+    #loginDiv { padding: 1rem; background: #eee; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    #loginDiv input { padding: 8px; font-size: 16px; flex-grow: 1; min-width: 180px; }
+    #loginDiv button { padding: 8px 16px; font-size: 16px; cursor: pointer; }
+    #dailyViewTop { display: flex; justify-content: space-between; align-items: center; padding: 0 1rem 1rem 1rem; }
+    #dailyViewTop button { padding: 8px 16px; font-size: 16px; cursor: pointer; margin-top: 0; }
+    .taskRow { padding: 10px; border-bottom: 1px solid #ddd; cursor: pointer; }
+    .repeat-days-container { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+    .repeat-day-label { display: inline-flex; align-items: center; background: #e0e0e0; padding: 6px 10px; border-radius: 4px; font-weight: normal; font-size: 14px; cursor: pointer; user-select: none; margin-top: 0; }
+    .repeat-day-label input { width: auto; margin-right: 5px; margin-top: 0; }
   </style>
 </head>
 <body>
 
-<!-- LOGIN FORM -->
 <div id="loginDiv">
   <input type="email" id="email" placeholder="Email" />
   <input type="password" id="password" placeholder="Password" />
@@ -181,75 +47,75 @@
   <button id="logoutBtn" style="display:none; margin-left: 1rem;">Logout</button>
 </div>
 
-<!-- APP CONTAINER -->
 <div id="appDiv" style="display:none;">
 
-<header>
-  <button id="prevMonth">&lt;</button>
-  <h1 id="monthYear">Month Year</h1>
-  <button id="nextMonth">&gt;</button>
-</header>
+  <header>
+    <button id="prevMonth">&lt;</button>
+    <h1 id="monthYear">Month Year</h1>
+    <button id="nextMonth">&gt;</button>
+  </header>
 
-<div id="calendarView">
-  <div class="calendar-grid" id="calendar"></div>
-</div>
-
-<div id="dailyView">
-  <div id="dailyViewTop">
-    <button id="backToMonth">← Back to Month</button>
-    <button id="showFormBtn">+ Add Task</button>
+  <div id="calendarView">
+    <div class="calendar-grid" id="calendar"></div>
   </div>
 
-  <h2 id="dailyDateTitle" style="display:none;">Selected Date</h2>
-  <div id="tasksList"></div>
-
-  <form id="addEventForm">
-    <h3 id="formTitle">Add Task</h3>
-    <label>Time:</label>
-    <input type="time" id="eventTime" required />
-    <label>Title:</label>
-    <input type="text" id="eventTitle" required />
-    <label>Description:</label>
-    <textarea id="eventDesc" rows="4"></textarea>
-
-    <label>Repeat on Days:</label>
-    <div class="repeat-days-container">
-      <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="0">Sun</label>
-      <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="1">Mon</label>
-      <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="2">Tue</label>
-      <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="3">Wed</label>
-      <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="4">Thu</label>
-      <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="5">Fri</label>
-      <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="6">Sat</label>
+  <div id="dailyView">
+    <div id="dailyViewTop">
+      <button id="backToMonth">← Back to Month</button>
+      <button id="showFormBtn">+ Add Task</button>
     </div>
+    <div id="tasksList"></div>
+    <form id="addEventForm">
+      <h3 id="formTitle">Add Task</h3>
+      <label>Time:</label>
+      <input type="time" id="eventTime" required />
+      <label>Title:</label>
+      <input type="text" id="eventTitle" required />
+      <label>Description:</label>
+      <textarea id="eventDesc" rows="4"></textarea>
+      <label>Repeat on Days:</label>
+      <div class="repeat-days-container">
+        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="0">Sun</label>
+        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="1">Mon</label>
+        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="2">Tue</label>
+        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="3">Wed</label>
+        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="4">Thu</label>
+        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="5">Fri</label>
+        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="6">Sat</label>
+      </div>
+      <button type="submit">Save</button>
+    </form>
+  </div>
 
-    <button type="submit">Save</button>
-  </form>
-</div>
-
-<div id="descModal">
-  <div id="descModalContent">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <h3 id="descTitle" style="margin: 0;"></h3>
-      <div style="position: relative;">
-        <button id="menuBtn" style="background: none; border: none; font-size: 1.5em; cursor: pointer;">⋯</button>
-        <div id="menuOptions" style="display: none; position: absolute; right: 0; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
-          <button id="editBtn" style="display:block; width:100%; padding: 5px 10px; border: none; background: white; text-align: left; cursor: pointer;">Edit</button>
-          <button id="deleteBtn" style="display:block; width:100%; padding: 5px 10px; border: none; background: white; text-align: left; cursor: pointer; color: red;">Delete</button>
+  <div id="descModal">
+    <div id="descModalContent">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 id="descTitle" style="margin: 0;"></h3>
+        <div style="position: relative;">
+          <button id="menuBtn" style="background: none; border: none; font-size: 1.5em; cursor: pointer;">⋯</button>
+          <div id="menuOptions" style="display: none; position: absolute; right: 0; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
+            <button id="editBtn" style="display:block; width:100%; padding: 5px 10px; border: none; background: white; text-align: left; cursor: pointer;">Edit</button>
+            <button id="deleteBtn" style="display:block; width:100%; padding: 5px 10px; border: none; background: white; text-align: left; cursor: pointer; color: red;">Delete</button>
+          </div>
         </div>
       </div>
+      <p id="descText" style="margin-top: 10px;"></p>
+      <button id="closeDescModal">Close</button>
     </div>
-    <p id="descText" style="margin-top: 10px;"></p>
-    <button id="closeDescModal">Close</button>
   </div>
-</div>
 
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
-  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
+  import {
+    getFirestore, collection, doc, getDoc, getDocs,
+    setDoc, deleteDoc, writeBatch, query, where
+  } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+  import {
+    getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+    onAuthStateChanged, signOut
+  } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyD_u0nBXgOfoeK8O9OyZVXlpSF9_v7ovQU",
@@ -265,144 +131,155 @@
   const db = getFirestore(app);
   const auth = getAuth(app);
 
+  function tasksCol() {
+    return collection(db, "users", currentUser.uid, "tasks");
+  }
+
+  async function saveTask(id, taskData) {
+    await setDoc(doc(tasksCol(), id), taskData);
+  }
+
+  async function deleteTask(id) {
+    await deleteDoc(doc(tasksCol(), id));
+  }
+
+  async function loadMonth(year, month) {
+    const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+    const q = query(tasksCol(), where("date", ">=", prefix + "-01"), where("date", "<=", prefix + "-31"));
+    const snap = await getDocs(q);
+    Object.keys(events).forEach(d => { if (d.startsWith(prefix)) delete events[d]; });
+    snap.forEach(docSnap => {
+      const task = docSnap.data();
+      if (!events[task.date]) events[task.date] = {};
+      events[task.date][docSnap.id] = task;
+    });
+  }
+
+  async function deleteSeriesByGroupId(groupId) {
+    const q = query(tasksCol(), where("repeatGroupId", "==", groupId));
+    const snap = await getDocs(q);
+    const batch = writeBatch(db);
+    snap.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+    Object.keys(events).forEach(dateKey => {
+      Object.keys(events[dateKey]).forEach(taskKey => {
+        if (events[dateKey][taskKey].repeatGroupId === groupId) delete events[dateKey][taskKey];
+      });
+      if (Object.keys(events[dateKey]).length === 0) delete events[dateKey];
+    });
+  }
+
+  async function updateSeriesByGroupId(groupId, changes) {
+    const q = query(tasksCol(), where("repeatGroupId", "==", groupId));
+    const snap = await getDocs(q);
+    const batch = writeBatch(db);
+    snap.forEach(d => batch.update(d.ref, changes));
+    await batch.commit();
+    Object.keys(events).forEach(dateKey => {
+      Object.keys(events[dateKey]).forEach(taskKey => {
+        if (events[dateKey][taskKey].repeatGroupId === groupId) {
+          Object.assign(events[dateKey][taskKey], changes);
+        }
+      });
+    });
+  }
+
   const loginDiv = document.getElementById("loginDiv");
   const appDiv = document.getElementById("appDiv");
   const emailInput = document.getElementById("email");
   const passwordInput = document.getElementById("password");
-  const loginBtn = document.getElementById("loginBtn");
-  const signupBtn = document.getElementById("signupBtn");
-  const logoutBtn = document.getElementById("logoutBtn");
 
-  loginBtn.addEventListener("click", () => {
-    const email = emailInput.value;
-    const password = passwordInput.value;
-    signInWithEmailAndPassword(auth, email, password)
-     .then(() => console.log("Logged in"))
-     .catch(e => alert("Login failed: " + e.message));
+  document.getElementById("loginBtn").addEventListener("click", () => {
+    signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
+      .catch(e => alert("Login failed: " + e.message));
   });
 
-  signupBtn.addEventListener("click", () => {
-    const email = emailInput.value;
-    const password = passwordInput.value;
-    createUserWithEmailAndPassword(auth, email, password)
-     .then(() => alert("Signup successful. Please login."))
-     .catch(e => alert("Signup failed: " + e.message));
+  document.getElementById("signupBtn").addEventListener("click", () => {
+    createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
+      .then(() => alert("Signup successful. Please login."))
+      .catch(e => alert("Signup failed: " + e.message));
   });
 
-  logoutBtn.addEventListener("click", () => signOut(auth));
+  document.getElementById("logoutBtn").addEventListener("click", () => signOut(auth));
 
-  onAuthStateChanged(auth, user => {
-    if(user) {
+  onAuthStateChanged(auth, async user => {
+    if (user) {
       loginDiv.style.display = "none";
       appDiv.style.display = "block";
-      logoutBtn.style.display = "inline-block";
+      document.getElementById("logoutBtn").style.display = "inline-block";
       currentUser = user;
-      loadUserData().then(() => renderCalendar());
+      await loadMonth(currentYear, currentMonth);
+      renderCalendar();
     } else {
       loginDiv.style.display = "flex";
       appDiv.style.display = "none";
-      logoutBtn.style.display = "none";
+      document.getElementById("logoutBtn").style.display = "none";
       currentUser = null;
+      events = {};
     }
   });
 
   let currentUser = null;
-  let currentYear, currentMonth;
-  let selectedDate;
+  const today = new Date();
+  let currentYear = today.getFullYear();
+  let currentMonth = today.getMonth();
+  let selectedDate = null;
+  let editingEventId = null;
   let events = {};
 
-  const monthYearEl = document.getElementById("monthYear");
-  const calendarEl = document.getElementById("calendar");
-  const prevMonthBtn = document.getElementById("prevMonth");
-  const nextMonthBtn = document.getElementById("nextMonth");
-  const calendarView = document.getElementById("calendarView");
-  const dailyView = document.getElementById("dailyView");
-  const dailyDateTitle = document.getElementById("dailyDateTitle");
+  const monthYearEl    = document.getElementById("monthYear");
+  const calendarEl     = document.getElementById("calendar");
+  const calendarView   = document.getElementById("calendarView");
+  const dailyView      = document.getElementById("dailyView");
   const backToMonthBtn = document.getElementById("backToMonth");
-  const showFormBtn = document.getElementById("showFormBtn");
-  const tasksList = document.getElementById("tasksList");
-  const addEventForm = document.getElementById("addEventForm");
+  const showFormBtn    = document.getElementById("showFormBtn");
+  const tasksList      = document.getElementById("tasksList");
+  const addEventForm   = document.getElementById("addEventForm");
   const eventTimeInput = document.getElementById("eventTime");
-  const eventTitleInput = document.getElementById("eventTitle");
+  const eventTitleInput= document.getElementById("eventTitle");
   const eventDescInput = document.getElementById("eventDesc");
-  const formTitle = document.getElementById("formTitle");
-
-  const descModal = document.getElementById("descModal");
-  const descTitle = document.getElementById("descTitle");
-  const descText = document.getElementById("descText");
-  const closeDescModalBtn = document.getElementById("closeDescModal");
-  const menuBtn = document.getElementById("menuBtn");
-  const menuOptions = document.getElementById("menuOptions");
-  const editBtn = document.getElementById("editBtn");
-  const deleteBtn = document.getElementById("deleteBtn");
-
-  let editingEventId = null;
-
-  const today = new Date();
-  currentYear = today.getFullYear();
-  currentMonth = today.getMonth();
-
-  async function loadUserData() {
-    if(!currentUser) return;
-    const docRef = doc(db, "calendars", currentUser.uid);
-    const docSnap = await getDoc(docRef);
-    events = docSnap.exists()? docSnap.data() : {};
-  }
-
-  async function saveUserData() {
-    if(!currentUser) return;
-    const docRef = doc(db, "calendars", currentUser.uid);
-    await setDoc(docRef, events);
-  }
+  const formTitle      = document.getElementById("formTitle");
+  const descModal      = document.getElementById("descModal");
+  const descTitle      = document.getElementById("descTitle");
+  const descText       = document.getElementById("descText");
+  const menuOptions    = document.getElementById("menuOptions");
 
   function renderCalendar() {
     calendarView.style.display = "block";
     dailyView.style.display = "none";
-    prevMonthBtn.style.display = "inline-block";
-    nextMonthBtn.style.display = "inline-block";
+    document.getElementById("prevMonth").style.display = "inline-block";
+    document.getElementById("nextMonth").style.display = "inline-block";
 
     const firstDay = new Date(currentYear, currentMonth, 1);
-    const lastDay = new Date(currentYear, currentMonth + 1, 0);
-    const startDayOfWeek = firstDay.getDay();
-    const daysInMonth = lastDay.getDate();
+    const lastDay  = new Date(currentYear, currentMonth + 1, 0);
 
     monthYearEl.textContent = firstDay.toLocaleString('default', { month: 'long', year: 'numeric' });
     calendarEl.innerHTML = "";
 
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    for(let dayName of dayNames) {
-      const dayNameDiv = document.createElement("div");
-      dayNameDiv.classList.add("day-name");
-      dayNameDiv.textContent = dayName;
-      calendarEl.appendChild(dayNameDiv);
-    }
+    ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(name => {
+      const d = document.createElement("div");
+      d.classList.add("day-name");
+      d.textContent = name;
+      calendarEl.appendChild(d);
+    });
 
-    for(let i=0; i < startDayOfWeek; i++) {
-      calendarEl.appendChild(document.createElement("div"));
-    }
+    for (let i = 0; i < firstDay.getDay(); i++) calendarEl.appendChild(document.createElement("div"));
 
-    for(let day=1; day <= daysInMonth; day++) {
+    for (let day = 1; day <= lastDay.getDate(); day++) {
       const date = new Date(currentYear, currentMonth, day);
       const dateStr = formatDate(date);
       const dayDiv = document.createElement("div");
       dayDiv.classList.add("date-number");
       dayDiv.textContent = day;
 
-      if(isToday(date)) dayDiv.classList.add("today");
+      if (isToday(date)) dayDiv.classList.add("today");
 
-      if(events[dateStr] && Object.keys(events[dateStr]).length > 0) {
+      if (events[dateStr] && Object.keys(events[dateStr]).length > 0) {
         const dot = document.createElement("span");
-        dot.style.backgroundColor = "#007bff";
-        dot.style.borderRadius = "50%";
-        dot.style.width = "8px";
-        dot.style.height = "8px";
-        dot.style.display = "inline-block";
-        dot.style.marginLeft = "5px";
-        dot.style.verticalAlign = "middle";
+        dot.style.cssText = "background:#007bff;border-radius:50%;width:8px;height:8px;display:inline-block;margin-left:5px;vertical-align:middle;";
         dayDiv.appendChild(dot);
       }
 
-      dayDiv.style.cursor = "pointer";
       dayDiv.addEventListener("click", () => showDailyView(date));
       calendarEl.appendChild(dayDiv);
     }
@@ -410,28 +287,27 @@
 
   function isToday(date) {
     return date.getFullYear() === today.getFullYear() &&
-           date.getMonth() === today.getMonth() &&
-           date.getDate() === today.getDate();
+           date.getMonth()    === today.getMonth() &&
+           date.getDate()     === today.getDate();
   }
 
   function formatDate(date) {
     const offset = date.getTimezoneOffset();
-    const localDate = new Date(date.getTime() - (offset * 60 * 1000));
-    return localDate.toISOString().split("T")[0];
+    const local  = new Date(date.getTime() - offset * 60000);
+    return local.toISOString().split("T")[0];
   }
 
   function showDailyView(date) {
     calendarView.style.display = "none";
     dailyView.style.display = "block";
-    prevMonthBtn.style.display = "none";
-    nextMonthBtn.style.display = "none";
+    document.getElementById("prevMonth").style.display = "none";
+    document.getElementById("nextMonth").style.display = "none";
     selectedDate = date;
 
-    monthYearEl.textContent = selectedDate.toLocaleDateString('default', {
+    monthYearEl.textContent = date.toLocaleDateString('default', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
 
-    dailyDateTitle.style.display = "none";
     showFormBtn.style.display = "inline-block";
     addEventForm.style.display = "none";
     renderTasksForDate(date);
@@ -440,22 +316,22 @@
   function renderTasksForDate(date) {
     tasksList.innerHTML = "";
     const dateStr = formatDate(date);
+    const dayEvents = events[dateStr];
 
-    if(!events[dateStr] || Object.keys(events[dateStr]).length === 0) {
+    if (!dayEvents || Object.keys(dayEvents).length === 0) {
       tasksList.textContent = "No tasks for this day.";
       return;
     }
 
-    const eventEntries = Object.entries(events[dateStr]);
-    eventEntries.sort((a, b) => a[1].time.localeCompare(b[1].time));
-
-    for(const [id, event] of eventEntries) {
-      const taskRow = document.createElement("div");
-      taskRow.classList.add("taskRow");
-      taskRow.textContent = event.time + " - " + event.title;
-      taskRow.addEventListener("click", () => openDescModal(id, event));
-      tasksList.appendChild(taskRow);
-    }
+    Object.entries(dayEvents)
+      .sort((a, b) => a[1].time.localeCompare(b[1].time))
+      .forEach(([id, event]) => {
+        const row = document.createElement("div");
+        row.classList.add("taskRow");
+        row.textContent = event.time + " - " + event.title;
+        row.addEventListener("click", () => openDescModal(id, event));
+        tasksList.appendChild(row);
+      });
   }
 
   function openDescModal(id, event) {
@@ -466,17 +342,61 @@
     menuOptions.style.display = "none";
   }
 
-  closeDescModalBtn.addEventListener("click", () => {
+  document.getElementById("closeDescModal").addEventListener("click", () => {
     descModal.style.display = "none";
     editingEventId = null;
   });
 
-  menuBtn.addEventListener("click", (e) => {
+  document.getElementById("menuBtn").addEventListener("click", e => {
     e.stopPropagation();
-    menuOptions.style.display = menuOptions.style.display === "block"? "none" : "block";
+    menuOptions.style.display = menuOptions.style.display === "block" ? "none" : "block";
   });
 
   window.addEventListener("click", () => menuOptions.style.display = "none");
+
+  document.getElementById("editBtn").addEventListener("click", () => {
+    if (!editingEventId || !selectedDate) return;
+    const event = events[formatDate(selectedDate)][editingEventId];
+    if (!event) return;
+    descModal.style.display = "none";
+    showFormBtn.style.display = "none";
+    addEventForm.style.display = "block";
+    formTitle.textContent = event.repeatGroupId ? "Edit Recurring Task" : "Edit Task";
+    eventTimeInput.value  = event.time;
+    eventTitleInput.value = event.title;
+    eventDescInput.value  = event.description || "";
+    document.querySelectorAll('input[name="repeatDays"]').forEach(cb => cb.checked = false);
+  });
+
+  document.getElementById("deleteBtn").addEventListener("click", async () => {
+    if (!editingEventId || !selectedDate) return;
+    const dateStr = formatDate(selectedDate);
+    const currentEvent = events[dateStr]?.[editingEventId];
+    if (!currentEvent) return;
+
+    if (currentEvent.repeatGroupId) {
+      const deleteAll = confirm(
+        "This is a recurring task.\n\n" +
+        "• OK = delete the ENTIRE series\n" +
+        "• Cancel = delete only this occurrence"
+      );
+      if (deleteAll) {
+        await deleteSeriesByGroupId(currentEvent.repeatGroupId);
+      } else {
+        await deleteTask(editingEventId);
+        delete events[dateStr][editingEventId];
+        if (Object.keys(events[dateStr]).length === 0) delete events[dateStr];
+      }
+    } else {
+      await deleteTask(editingEventId);
+      delete events[dateStr][editingEventId];
+      if (Object.keys(events[dateStr]).length === 0) delete events[dateStr];
+    }
+
+    descModal.style.display = "none";
+    editingEventId = null;
+    renderCalendar();
+  });
 
   function resetForm() {
     eventTimeInput.value = "";
@@ -484,63 +404,6 @@
     eventDescInput.value = "";
     document.querySelectorAll('input[name="repeatDays"]').forEach(cb => cb.checked = false);
   }
-
-  editBtn.addEventListener("click", () => {
-    if(editingEventId && selectedDate) {
-      const dateStr = formatDate(selectedDate);
-      const event = events[dateStr][editingEventId];
-      if(event) {
-        descModal.style.display = "none";
-        showFormBtn.style.display = "none";
-        addEventForm.style.display = "block";
-        formTitle.textContent = event.repeatGroupId? "Edit Recurring Task" : "Edit Task";
-        eventTimeInput.value = event.time;
-        eventTitleInput.value = event.title;
-        eventDescInput.value = event.description || "";
-        document.querySelectorAll('input[name="repeatDays"]').forEach(cb => cb.checked = false);
-      }
-    }
-  });
-
-  // ✅ FIXED DELETE BUTTON - handles entire series + refreshes calendar
-  deleteBtn.addEventListener("click", async () => {
-    if(!editingEventId ||!selectedDate) return;
-
-    const dateStr = formatDate(selectedDate);
-    const currentEvent = events[dateStr]?.[editingEventId];
-    if (!currentEvent) return;
-
-    if (currentEvent.repeatGroupId) {
-      const deleteEntireSeries = confirm(
-        "This is a recurring task.\n\n" +
-        "• Click OK to delete the ENTIRE series.\n" +
-        "• Click Cancel to delete ONLY this single occurrence."
-      );
-
-      if (deleteEntireSeries) {
-        const targetGroupId = currentEvent.repeatGroupId;
-        Object.keys(events).forEach(dayKey => {
-          Object.keys(events[dayKey]).forEach(taskKey => {
-            if (events[dayKey][taskKey].repeatGroupId === targetGroupId) {
-              delete events[dayKey][taskKey];
-            }
-          });
-          if (Object.keys(events[dayKey]).length === 0) delete events[dayKey];
-        });
-      } else {
-        delete events[dateStr][editingEventId];
-        if(Object.keys(events[dateStr]).length === 0) delete events[dateStr];
-      }
-    } else {
-      delete events[dateStr][editingEventId];
-      if(Object.keys(events[dateStr]).length === 0) delete events[dateStr];
-    }
-
-    await saveUserData();
-    descModal.style.display = "none";
-    editingEventId = null;
-    renderCalendar(); // KEY FIX: refresh month view to update dots
-  });
 
   backToMonthBtn.addEventListener("click", () => renderCalendar());
 
@@ -552,92 +415,88 @@
     editingEventId = null;
   });
 
-  // ✅ UPDATED SUBMIT - handles edit entire series
-  addEventForm.addEventListener("submit", async (e) => {
+  addEventForm.addEventListener("submit", async e => {
     e.preventDefault();
-    if(!selectedDate) return;
+    if (!selectedDate) return;
 
-    const time = eventTimeInput.value;
-    const title = eventTitleInput.value;
+    const time        = eventTimeInput.value;
+    const title       = eventTitleInput.value;
     const description = eventDescInput.value;
-    const checkedBoxes = document.querySelectorAll('input[name="repeatDays"]:checked');
-    const repeatDays = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
+    const repeatDays  = Array.from(document.querySelectorAll('input[name="repeatDays"]:checked'))
+                             .map(cb => parseInt(cb.value));
 
-    if(editingEventId) {
-      const dateStr = formatDate(selectedDate);
+    if (editingEventId) {
+      const dateStr  = formatDate(selectedDate);
       const oldEvent = events[dateStr][editingEventId];
+      const changes  = { time, title, description };
 
       if (oldEvent?.repeatGroupId) {
-        const updateEntireSeries = confirm(
+        const updateAll = confirm(
           "This is a recurring task.\n\n" +
-          "• Click OK to update the ENTIRE series.\n" +
-          "• Click Cancel to update ONLY this occurrence."
+          "• OK = update the ENTIRE series\n" +
+          "• Cancel = update only this occurrence"
         );
-
-        if (updateEntireSeries) {
-          const targetGroupId = oldEvent.repeatGroupId;
-          Object.keys(events).forEach(dayKey => {
-            Object.keys(events[dayKey]).forEach(taskKey => {
-              if (events[dayKey][taskKey].repeatGroupId === targetGroupId) {
-                events[dayKey][taskKey] = {...events[dayKey][taskKey], time, title, description };
-              }
-            });
-          });
+        if (updateAll) {
+          await updateSeriesByGroupId(oldEvent.repeatGroupId, changes);
         } else {
-          events[dateStr][editingEventId] = { time, title, description, repeatGroupId: null };
+          const updated = { ...oldEvent, ...changes, repeatGroupId: null };
+          await saveTask(editingEventId, updated);
+          events[dateStr][editingEventId] = updated;
         }
       } else {
-        events[dateStr][editingEventId] = { time, title, description };
+        const updated = { ...oldEvent, ...changes };
+        await saveTask(editingEventId, updated);
+        events[dateStr][editingEventId] = updated;
       }
 
-    } else if(repeatDays.length > 0) {
+    } else if (repeatDays.length > 0) {
+      const groupId  = crypto.randomUUID();
       const loopDate = new Date(selectedDate);
-      const uniqueGroupId = crypto.randomUUID();
+      const batch    = writeBatch(db);
 
       for (let i = 0; i < 90; i++) {
-        const currentDayOfWeek = loopDate.getDay();
-        if (repeatDays.includes(currentDayOfWeek)) {
+        if (repeatDays.includes(loopDate.getDay())) {
           const dateStr = formatDate(loopDate);
+          const id      = crypto.randomUUID();
+          const taskData = { date: dateStr, time, title, description, repeatGroupId: groupId };
+          batch.set(doc(tasksCol(), id), taskData);
           if (!events[dateStr]) events[dateStr] = {};
-          const id = crypto.randomUUID();
-          events[dateStr][id] = { time, title, description, repeatGroupId: uniqueGroupId };
+          events[dateStr][id] = taskData;
         }
         loopDate.setDate(loopDate.getDate() + 1);
       }
+      await batch.commit();
+
     } else {
-      const dateStr = formatDate(selectedDate);
-      if(!events[dateStr]) events[dateStr] = {};
-      const id = crypto.randomUUID();
-      events[dateStr][id] = { time, title, description };
+      const dateStr  = formatDate(selectedDate);
+      const id       = crypto.randomUUID();
+      const taskData = { date: dateStr, time, title, description, repeatGroupId: null };
+      await saveTask(id, taskData);
+      if (!events[dateStr]) events[dateStr] = {};
+      events[dateStr][id] = taskData;
     }
 
-    await saveUserData();
     addEventForm.style.display = "none";
     showFormBtn.style.display = "inline-block";
     renderCalendar();
     showDailyView(selectedDate);
   });
 
-  prevMonthBtn.addEventListener("click", () => {
+  document.getElementById("prevMonth").addEventListener("click", async () => {
     currentMonth--;
-    if(currentMonth < 0) {
-      currentMonth = 11;
-      currentYear--;
-    }
+    if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+    if (currentUser) await loadMonth(currentYear, currentMonth);
     renderCalendar();
   });
 
-  nextMonthBtn.addEventListener("click", () => {
+  document.getElementById("nextMonth").addEventListener("click", async () => {
     currentMonth++;
-    if(currentMonth > 11) {
-      currentMonth = 0;
-      currentYear++;
-    }
+    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+    if (currentUser) await loadMonth(currentYear, currentMonth);
     renderCalendar();
   });
 
   renderCalendar();
 </script>
-
 </body>
 </html>
