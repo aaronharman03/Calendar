@@ -67,18 +67,6 @@
       padding: 10px;
       border-bottom: 1px solid #ddd;
       cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-   .taskDeleteBtn {
-      background: #dc3545;
-      color: white;
-      border: none;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      margin-left: 10px;
     }
     #addEventForm {
       display: none;
@@ -150,19 +138,12 @@
       justify-content: space-between;
       align-items: center;
       padding: 0 1rem 1rem 1rem;
-      flex-wrap: wrap;
-      gap: 10px;
     }
     #dailyViewTop button {
       padding: 8px 16px;
       font-size: 16px;
       cursor: pointer;
       margin-top: 0;
-    }
-    #deleteAllRepeatingBtn {
-      background: #dc3545;
-      color: white;
-      border: none;
     }
   .repeat-days-container {
       display: flex;
@@ -186,14 +167,6 @@
       width: auto;
       margin-right: 5px;
       margin-top: 0;
-    }
-   .repeat-badge {
-      background: #28a745;
-      color: white;
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 10px;
-      margin-left: 5px;
     }
   </style>
 </head>
@@ -224,10 +197,7 @@
 <div id="dailyView">
   <div id="dailyViewTop">
     <button id="backToMonth">← Back to Month</button>
-    <div>
-      <button id="deleteAllRepeatingBtn">Delete All Repeating Tasks</button>
-      <button id="showFormBtn">+ Add Task</button>
-    </div>
+    <button id="showFormBtn">+ Add Task</button>
   </div>
 
   <h2 id="dailyDateTitle" style="display:none;">Selected Date</h2>
@@ -263,9 +233,11 @@
       <h3 id="descTitle" style="margin: 0;"></h3>
       <div style="position: relative;">
         <button id="menuBtn" style="background: none; border: none; font-size: 1.5em; cursor: pointer;">⋯</button>
-        <div id="menuOptions" style="display: none; position: absolute; right: 0; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
+        <div id="menuOptions" style="display: none; position: absolute; right: 0; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); min-width: 200px;">
           <button id="editBtn" style="display:block; width:100%; padding: 5px 10px; border: none; background: white; text-align: left; cursor: pointer;">Edit</button>
           <button id="deleteBtn" style="display:block; width:100%; padding: 5px 10px; border: none; background: white; text-align: left; cursor: pointer; color: red;">Delete</button>
+          <hr style="margin: 5px 0; border: none; border-top: 1px solid #eee;">
+          <button id="deleteAllRepeatingBtn" style="display:block; width:100%; padding: 5px 10px; border: none; background: white; text-align: left; cursor: pointer; color: red;">Delete All Repeating Tasks</button>
         </div>
       </div>
     </div>
@@ -350,7 +322,6 @@
   const dailyDateTitle = document.getElementById("dailyDateTitle");
   const backToMonthBtn = document.getElementById("backToMonth");
   const showFormBtn = document.getElementById("showFormBtn");
-  const deleteAllRepeatingBtn = document.getElementById("deleteAllRepeatingBtn");
   const tasksList = document.getElementById("tasksList");
   const addEventForm = document.getElementById("addEventForm");
   const eventTimeInput = document.getElementById("eventTime");
@@ -366,6 +337,7 @@
   const menuOptions = document.getElementById("menuOptions");
   const editBtn = document.getElementById("editBtn");
   const deleteBtn = document.getElementById("deleteBtn");
+  const deleteAllRepeatingBtn = document.getElementById("deleteAllRepeatingBtn");
 
   let editingEventId = null;
 
@@ -483,64 +455,10 @@
     for(const [id, event] of eventEntries) {
       const taskRow = document.createElement("div");
       taskRow.classList.add("taskRow");
-
-      const taskInfo = document.createElement("div");
-      taskInfo.textContent = event.time + " - " + event.title;
-      taskInfo.style.cursor = "pointer";
-      taskInfo.addEventListener("click", () => openDescModal(id, event));
-
-      if(event.repeatGroupId) {
-        const badge = document.createElement("span");
-        badge.classList.add("repeat-badge");
-        badge.textContent = "REPEATING";
-        taskInfo.appendChild(badge);
-      }
-
-      const deleteBtn = document.createElement("button");
-      deleteBtn.classList.add("taskDeleteBtn");
-      deleteBtn.textContent = "Delete";
-      deleteBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        deleteTask(id, event, dateStr);
-      });
-
-      taskRow.appendChild(taskInfo);
-      taskRow.appendChild(deleteBtn);
+      taskRow.textContent = event.time + " - " + event.title;
+      taskRow.addEventListener("click", () => openDescModal(id, event));
       tasksList.appendChild(taskRow);
     }
-  }
-
-  async function deleteTask(id, event, dateStr) {
-    if (event.repeatGroupId) {
-      const deleteEntireSeries = confirm(
-        "This is a recurring task.\n\n" +
-        "• Click OK to delete the ENTIRE series.\n" +
-        "• Click Cancel to delete ONLY this single occurrence."
-      );
-
-      if (deleteEntireSeries) {
-        const targetGroupId = event.repeatGroupId;
-        Object.keys(events).forEach(dayKey => {
-          Object.keys(events[dayKey]).forEach(taskKey => {
-            if (events[dayKey][taskKey].repeatGroupId === targetGroupId) {
-              delete events[dayKey][taskKey];
-            }
-          });
-          if (Object.keys(events[dayKey]).length === 0) delete events[dayKey];
-        });
-      } else {
-        delete events[dateStr][id];
-        if(Object.keys(events[dateStr]).length === 0) delete events[dateStr];
-      }
-    } else {
-      if(!confirm("Delete this task?")) return;
-      delete events[dateStr][id];
-      if(Object.keys(events[dateStr]).length === 0) delete events[dateStr];
-    }
-
-    await saveUserData();
-    renderTasksForDate(selectedDate);
-    renderCalendar();
   }
 
   function openDescModal(id, event) {
@@ -589,17 +507,47 @@
 
   deleteBtn.addEventListener("click", async () => {
     if(!editingEventId ||!selectedDate) return;
+
     const dateStr = formatDate(selectedDate);
     const currentEvent = events[dateStr]?.[editingEventId];
     if (!currentEvent) return;
 
-    await deleteTask(editingEventId, currentEvent, dateStr);
+    if (currentEvent.repeatGroupId) {
+      const deleteEntireSeries = confirm(
+        "This is a recurring task.\n\n" +
+        "• Click OK to delete the ENTIRE series.\n" +
+        "• Click Cancel to delete ONLY this single occurrence."
+      );
+
+      if (deleteEntireSeries) {
+        const targetGroupId = currentEvent.repeatGroupId;
+        Object.keys(events).forEach(dayKey => {
+          Object.keys(events[dayKey]).forEach(taskKey => {
+            if (events[dayKey][taskKey].repeatGroupId === targetGroupId) {
+              delete events[dayKey][taskKey];
+            }
+          });
+          if (Object.keys(events[dayKey]).length === 0) delete events[dayKey];
+        });
+      } else {
+        delete events[dateStr][editingEventId];
+        if(Object.keys(events[dateStr]).length === 0) delete events[dateStr];
+      }
+    } else {
+      delete events[dateStr][editingEventId];
+      if(Object.keys(events[dateStr]).length === 0) delete events[dateStr];
+    }
+
+    await saveUserData();
     descModal.style.display = "none";
     editingEventId = null;
+    renderCalendar();
   });
 
-  // NEW: Delete all repeating tasks button
+  // NEW: Delete all repeating tasks from 3-dot menu
   deleteAllRepeatingBtn.addEventListener("click", async () => {
+    menuOptions.style.display = "none";
+
     const repeatingCount = Object.keys(events).reduce((count, dateKey) => {
       return count + Object.values(events[dateKey]).filter(e => e.repeatGroupId).length;
     }, 0);
@@ -626,6 +574,8 @@
     });
 
     await saveUserData();
+    descModal.style.display = "none";
+    editingEventId = null;
     renderTasksForDate(selectedDate);
     renderCalendar();
     alert("All repeating tasks deleted.");
