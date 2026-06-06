@@ -32,41 +32,53 @@
       flex-grow: 1;
       text-align: center;
     }
-    .calendar-header {
+   .calendar-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 1rem;
     }
-    .calendar-grid {
+   .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       gap: 1px;
       background: #ccc;
     }
-    .calendar-grid > div {
+   .calendar-grid > div {
       background: white;
       padding: 10px;
       text-align: right;
       min-height: 80px;
       cursor: pointer;
+      position: relative;
     }
-    .day-name {
+   .day-name {
       background: #eee;
       font-weight: bold;
       text-align: center;
     }
-    .today {
+   .today {
       background: #d0eaff;
     }
     #dailyView {
       display: none;
       padding: 1rem;
     }
-    #tasksList .taskRow {
+    #tasksList.taskRow {
       padding: 10px;
       border-bottom: 1px solid #ddd;
       cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+   .repeat-badge {
+      font-size: 0.75rem;
+      background: #28a745;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 10px;
+      margin-left: 8px;
     }
     #addEventForm {
       display: none;
@@ -109,7 +121,7 @@
     #menuOptions button:hover {
       background: #f0f0f0;
     }
-    .date-number {
+   .date-number {
       font-weight: bold;
     }
     /* Login area styling */
@@ -145,6 +157,40 @@
       font-size: 16px;
       cursor: pointer;
       margin-top: 0;
+    }
+    /* Repeat days styling */
+   .repeat-days {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+   .repeat-days label {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 14px;
+      background: #f5f5f5;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+   .repeat-days input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+   .event-dot {
+      background-color: #007bff;
+      border-radius: 50%;
+      width: 8px;
+      height: 8px;
+      display: inline-block;
+      margin-left: 5px;
+      vertical-align: middle;
+    }
+   .repeat-dot {
+      background-color: #28a745;
     }
   </style>
 </head>
@@ -189,6 +235,18 @@
     <input type="text" id="eventTitle" required />
     <label>Description:</label>
     <textarea id="eventDesc" rows="4"></textarea>
+
+    <label>Repeat on:</label>
+    <div class="repeat-days">
+      <label><input type="checkbox" name="repeatDay" value="0"> Sun</label>
+      <label><input type="checkbox" name="repeatDay" value="1"> Mon</label>
+      <label><input type="checkbox" name="repeatDay" value="2"> Tue</label>
+      <label><input type="checkbox" name="repeatDay" value="3"> Wed</label>
+      <label><input type="checkbox" name="repeatDay" value="4"> Thu</label>
+      <label><input type="checkbox" name="repeatDay" value="5"> Fri</label>
+      <label><input type="checkbox" name="repeatDay" value="6"> Sat</label>
+    </div>
+
     <button type="submit">Save</button>
   </form>
 </div>
@@ -206,6 +264,7 @@
       </div>
     </div>
     <p id="descText" style="margin-top: 10px;"></p>
+    <p id="repeatText" style="margin-top: 10px; color: #28a745; font-size: 0.9rem;"></p>
     <button id="closeDescModal">Close</button>
   </div>
 </div>
@@ -244,20 +303,20 @@
     const email = emailInput.value;
     const password = passwordInput.value;
     signInWithEmailAndPassword(auth, email, password)
-      .then(() => {
+     .then(() => {
         console.log("Logged in");
       })
-      .catch(e => alert("Login failed: " + e.message));
+     .catch(e => alert("Login failed: " + e.message));
   });
 
   signupBtn.addEventListener("click", () => {
     const email = emailInput.value;
     const password = passwordInput.value;
     createUserWithEmailAndPassword(auth, email, password)
-      .then(() => {
+     .then(() => {
         alert("Signup successful. Please login.");
       })
-      .catch(e => alert("Signup failed: " + e.message));
+     .catch(e => alert("Signup failed: " + e.message));
   });
 
   logoutBtn.addEventListener("click", () => {
@@ -283,7 +342,9 @@
   let currentUser = null;
   let currentYear, currentMonth; // for month view
   let selectedDate; // for daily view
-  let events = {}; // cached events
+  let events = {}; // cached events - structure: { "YYYY-MM-DD": { id: event }, "repeating": { id: event } }
+  let editingEventId = null; // for edits
+  let editingEventIsRepeating = false;
 
   // DOM references for calendar
   const monthYearEl = document.getElementById("monthYear");
@@ -306,13 +367,12 @@
   const descModal = document.getElementById("descModal");
   const descTitle = document.getElementById("descTitle");
   const descText = document.getElementById("descText");
+  const repeatText = document.getElementById("repeatText");
   const closeDescModalBtn = document.getElementById("closeDescModal");
   const menuBtn = document.getElementById("menuBtn");
   const menuOptions = document.getElementById("menuOptions");
   const editBtn = document.getElementById("editBtn");
   const deleteBtn = document.getElementById("deleteBtn");
-
-  let editingEventId = null; // for edits
 
   // Initialize to today
   const today = new Date();
@@ -326,8 +386,9 @@
     const docSnap = await getDoc(docRef);
     if(docSnap.exists()) {
       events = docSnap.data();
+      if (!events.repeating) events.repeating = {};
     } else {
-      events = {};
+      events = { repeating: {} };
     }
   }
 
@@ -338,272 +399,46 @@
     await setDoc(docRef, events);
   }
 
+  // Get all events for a specific date, including repeating ones
+  function getEventsForDate(date) {
+    const dateStr = formatDate(date);
+    const dayOfWeek = date.getDay(); // 0 = Sunday
+    let dayEvents = [];
+
+    // Add one-time events for this date
+    if (events[dateStr]) {
+      Object.entries(events[dateStr]).forEach(([id, event]) => {
+        dayEvents.push({ id,...event, isRepeating: false });
+      });
+    }
+
+    // Add repeating events that match this day of week
+    if (events.repeating) {
+      Object.entries(events.repeating).forEach(([id, event]) => {
+        if (event.repeatDays && event.repeatDays.includes(dayOfWeek)) {
+          // Only show if start date is before or on this date
+          if (!event.startDate || event.startDate <= dateStr) {
+            dayEvents.push({ id,...event, isRepeating: true });
+          }
+        }
+      });
+    }
+
+    return dayEvents.sort((a, b) => a.time.localeCompare(b.time));
+  }
+
   // Render month calendar
   function renderCalendar() {
     calendarView.style.display = "block";
     dailyView.style.display = "none";
 
-    // Show month buttons and update header to Month Year
     prevMonthBtn.style.display = "inline-block";
     nextMonthBtn.style.display = "inline-block";
 
     const firstDay = new Date(currentYear, currentMonth, 1);
     const lastDay = new Date(currentYear, currentMonth + 1, 0);
-    const startDayOfWeek = firstDay.getDay(); // Sunday=0
+    const startDayOfWeek = firstDay.getDay();
     const daysInMonth = lastDay.getDate();
 
     monthYearEl.textContent = firstDay.toLocaleString('default', { month: 'long', year: 'numeric' });
-
     calendarEl.innerHTML = "";
-
-    // Day names
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    for(let dayName of dayNames) {
-      const dayNameDiv = document.createElement("div");
-      dayNameDiv.classList.add("day-name");
-      dayNameDiv.textContent = dayName;
-      calendarEl.appendChild(dayNameDiv);
-    }
-
-    // Blank days before first day
-    for(let i=0; i < startDayOfWeek; i++) {
-      const blankDiv = document.createElement("div");
-      calendarEl.appendChild(blankDiv);
-    }
-
-    // Days
-    for(let day=1; day <= daysInMonth; day++) {
-      const date = new Date(currentYear, currentMonth, day);
-      const dateStr = formatDate(date);
-
-      const dayDiv = document.createElement("div");
-      dayDiv.classList.add("date-number");
-      dayDiv.textContent = day;
-
-      // Highlight today
-      if(isToday(date)) {
-        dayDiv.classList.add("today");
-      }
-
-      // If there are events on this day, show a dot or highlight
-      if(events[dateStr] && Object.keys(events[dateStr]).length > 0) {
-        const dot = document.createElement("span");
-        dot.style.backgroundColor = "#007bff";
-        dot.style.borderRadius = "50%";
-        dot.style.width = "8px";
-        dot.style.height = "8px";
-        dot.style.display = "inline-block";
-        dot.style.marginLeft = "5px";
-        dot.style.verticalAlign = "middle";
-        dayDiv.appendChild(dot);
-      }
-
-      dayDiv.style.cursor = "pointer";
-      dayDiv.addEventListener("click", () => {
-        showDailyView(date);
-      });
-
-      calendarEl.appendChild(dayDiv);
-    }
-  }
-
-  // Check if date is today
-  function isToday(date) {
-    return date.getFullYear() === today.getFullYear() &&
-           date.getMonth() === today.getMonth() &&
-           date.getDate() === today.getDate();
-  }
-
-  // Format date as YYYY-MM-DD
-  function formatDate(date) {
-    return date.toISOString().split("T")[0];
-  }
-
-  // Show daily view for a date
-  function showDailyView(date) {
-    calendarView.style.display = "none";
-    dailyView.style.display = "block";
-
-    // Hide month navigation buttons in day view
-    prevMonthBtn.style.display = "none";
-    nextMonthBtn.style.display = "none";
-
-    selectedDate = date;
-
-    // Update header to full selected date (like "Tuesday, May 21, 2025")
-    monthYearEl.textContent = selectedDate.toLocaleDateString('default', {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-    });
-
-    // Hide the old dailyDateTitle h2 since now header shows the date
-    dailyDateTitle.style.display = "none";
-
-    showFormBtn.style.display = "inline-block";
-    addEventForm.style.display = "none";
-
-    renderTasksForDate(date);
-  }
-
-  // Render tasks for selected date in day view
-  function renderTasksForDate(date) {
-    tasksList.innerHTML = "";
-    const dateStr = formatDate(date);
-
-    if(!events[dateStr]) {
-      tasksList.textContent = "No tasks for this day.";
-      return;
-    }
-
-    const eventEntries = Object.entries(events[dateStr]);
-    if(eventEntries.length === 0) {
-      tasksList.textContent = "No tasks for this day.";
-      return;
-    }
-
-    // Sort tasks by time
-    eventEntries.sort((a, b) => a[1].time.localeCompare(b[1].time));
-
-    for(const [id, event] of eventEntries) {
-      const taskRow = document.createElement("div");
-      taskRow.classList.add("taskRow");
-      taskRow.textContent = event.time + " - " + event.title;
-      taskRow.addEventListener("click", () => {
-        openDescModal(id, event);
-      });
-      tasksList.appendChild(taskRow);
-    }
-  }
-
-  // Open modal to show event description with menu options
-  function openDescModal(id, event) {
-    descTitle.textContent = event.title + " (" + event.time + ")";
-    descText.innerHTML = (event.description || "No description.").replace(/\n/g, '<br>');
-    descModal.style.display = "flex";
-    editingEventId = id;
-
-    menuOptions.style.display = "none"; // hide menu initially
-  }
-
-  // Close modal
-  closeDescModalBtn.addEventListener("click", () => {
-    descModal.style.display = "none";
-    editingEventId = null;
-  });
-
-  // Toggle menu options
-  menuBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if(menuOptions.style.display === "block") {
-      menuOptions.style.display = "none";
-    } else {
-      menuOptions.style.display = "block";
-    }
-  });
-
-  // Hide menu when clicking outside
-  window.addEventListener("click", () => {
-    menuOptions.style.display = "none";
-  });
-
-  // Edit button in modal
-  editBtn.addEventListener("click", () => {
-    if(editingEventId && selectedDate) {
-      const dateStr = formatDate(selectedDate);
-      const event = events[dateStr][editingEventId];
-      if(event) {
-        descModal.style.display = "none";
-        showFormBtn.style.display = "none";
-        addEventForm.style.display = "block";
-        formTitle.textContent = "Edit Task";
-
-        eventTimeInput.value = event.time;
-        eventTitleInput.value = event.title;
-        eventDescInput.value = event.description || "";
-        editingEventId = editingEventId;
-      }
-    }
-  });
-
-  // Delete button in modal
-  deleteBtn.addEventListener("click", async () => {
-    if(editingEventId && selectedDate) {
-      const dateStr = formatDate(selectedDate);
-      delete events[dateStr][editingEventId];
-      if(Object.keys(events[dateStr]).length === 0) {
-        delete events[dateStr];
-      }
-      await saveUserData();
-      descModal.style.display = "none";
-      renderTasksForDate(selectedDate);
-      editingEventId = null;
-    }
-  });
-
-  // Back to month view button
-  backToMonthBtn.addEventListener("click", () => {
-    renderCalendar();
-  });
-
-  // Show add task form button
-  showFormBtn.addEventListener("click", () => {
-    addEventForm.style.display = "block";
-    showFormBtn.style.display = "none";
-    formTitle.textContent = "Add Task";
-    eventTimeInput.value = "";
-    eventTitleInput.value = "";
-    eventDescInput.value = "";
-    editingEventId = null;
-  });
-
-  // Add event form submit
-  addEventForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if(!selectedDate) return;
-
-    const dateStr = formatDate(selectedDate);
-    if(!events[dateStr]) events[dateStr] = {};
-
-    const id = editingEventId || crypto.randomUUID();
-
-    events[dateStr][id] = {
-      time: eventTimeInput.value,
-      title: eventTitleInput.value,
-      description: eventDescInput.value,
-    };
-
-    await saveUserData();
-
-    addEventForm.style.display = "none";
-    showFormBtn.style.display = "inline-block";
-
-    renderTasksForDate(selectedDate);
-  });
-
-  // Prev/Next month buttons
-  prevMonthBtn.addEventListener("click", () => {
-    currentMonth--;
-    if(currentMonth < 0) {
-      currentMonth = 11;
-      currentYear--;
-    }
-    renderCalendar();
-  });
-
-  nextMonthBtn.addEventListener("click", () => {
-    currentMonth++;
-    if(currentMonth > 11) {
-      currentMonth = 0;
-      currentYear++;
-    }
-    renderCalendar();
-  });
-
-  // Initial load
-  renderCalendar();
-
-</script>
-
-</body>
-</html>
-
-    
