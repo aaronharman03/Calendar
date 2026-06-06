@@ -32,38 +32,38 @@
       flex-grow: 1;
       text-align: center;
     }
-    .calendar-header {
+   .calendar-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 1rem;
     }
-    .calendar-grid {
+   .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       gap: 1px;
       background: #ccc;
     }
-    .calendar-grid > div {
+   .calendar-grid > div {
       background: white;
       padding: 10px;
       text-align: right;
       min-height: 80px;
       cursor: pointer;
     }
-    .day-name {
+   .day-name {
       background: #eee;
       font-weight: bold;
       text-align: center;
     }
-    .today {
+   .today {
       background: #d0eaff;
     }
     #dailyView {
       display: none;
       padding: 1rem;
     }
-    #tasksList .taskRow {
+    #tasksList.taskRow {
       padding: 10px;
       border-bottom: 1px solid #ddd;
       cursor: pointer;
@@ -110,10 +110,9 @@
     #menuOptions button:hover {
       background: #f0f0f0;
     }
-    .date-number {
+   .date-number {
       font-weight: bold;
     }
-    /* Login area styling */
     #loginDiv {
       padding: 1rem;
       background: #eee;
@@ -134,7 +133,6 @@
       font-size: 16px;
       cursor: pointer;
     }
-    /* dailyView top buttons */
     #dailyViewTop {
       display: flex;
       justify-content: space-between;
@@ -147,14 +145,13 @@
       cursor: pointer;
       margin-top: 0;
     }
-    /* Repeat Days Buttons Wrapper */
-    .repeat-days-container {
+   .repeat-days-container {
       display: flex;
       gap: 5px;
       margin-top: 5px;
       flex-wrap: wrap;
     }
-    .repeat-day-label {
+   .repeat-day-label {
       display: inline-flex;
       align-items: center;
       background: #e0e0e0;
@@ -166,7 +163,7 @@
       user-select: none;
       margin-top: 0;
     }
-    .repeat-day-label input {
+   .repeat-day-label input {
       width: auto;
       margin-right: 5px;
       margin-top: 0;
@@ -215,7 +212,6 @@
     <label>Description:</label>
     <textarea id="eventDesc" rows="4"></textarea>
 
-    <!-- REPEAT OPTIONS FIELD -->
     <label>Repeat on Days:</label>
     <div class="repeat-days-container">
       <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="0">Sun</label>
@@ -248,7 +244,7 @@
   </div>
 </div>
 
-</div> <!-- end of appDiv -->
+</div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
@@ -269,7 +265,6 @@
   const db = getFirestore(app);
   const auth = getAuth(app);
 
-  // DOM references for auth and UI
   const loginDiv = document.getElementById("loginDiv");
   const appDiv = document.getElementById("appDiv");
   const emailInput = document.getElementById("email");
@@ -282,25 +277,19 @@
     const email = emailInput.value;
     const password = passwordInput.value;
     signInWithEmailAndPassword(auth, email, password)
-      .then(() => {
-        console.log("Logged in");
-      })
-      .catch(e => alert("Login failed: " + e.message));
+     .then(() => console.log("Logged in"))
+     .catch(e => alert("Login failed: " + e.message));
   });
 
   signupBtn.addEventListener("click", () => {
     const email = emailInput.value;
     const password = passwordInput.value;
     createUserWithEmailAndPassword(auth, email, password)
-      .then(() => {
-        alert("Signup successful. Please login.");
-      })
-      .catch(e => alert("Signup failed: " + e.message));
+     .then(() => alert("Signup successful. Please login."))
+     .catch(e => alert("Signup failed: " + e.message));
   });
 
-  logoutBtn.addEventListener("click", () => {
-    signOut(auth);
-  });
+  logoutBtn.addEventListener("click", () => signOut(auth));
 
   onAuthStateChanged(auth, user => {
     if(user) {
@@ -317,13 +306,11 @@
     }
   });
 
-  // Calendar variables
   let currentUser = null;
-  let currentYear, currentMonth; // for month view
-  let selectedDate; // for daily view
-  let events = {}; // cached events
+  let currentYear, currentMonth;
+  let selectedDate;
+  let events = {};
 
-  // DOM references for calendar
   const monthYearEl = document.getElementById("monthYear");
   const calendarEl = document.getElementById("calendar");
   const prevMonthBtn = document.getElementById("prevMonth");
@@ -340,7 +327,6 @@
   const eventDescInput = document.getElementById("eventDesc");
   const formTitle = document.getElementById("formTitle");
 
-  // Modal elements
   const descModal = document.getElementById("descModal");
   const descTitle = document.getElementById("descTitle");
   const descText = document.getElementById("descText");
@@ -350,37 +336,28 @@
   const editBtn = document.getElementById("editBtn");
   const deleteBtn = document.getElementById("deleteBtn");
 
-  let editingEventId = null; // for edits
+  let editingEventId = null;
 
-  // Initialize to today
   const today = new Date();
   currentYear = today.getFullYear();
   currentMonth = today.getMonth();
 
-  // Load user data
   async function loadUserData() {
     if(!currentUser) return;
     const docRef = doc(db, "calendars", currentUser.uid);
     const docSnap = await getDoc(docRef);
-    if(docSnap.exists()) {
-      events = docSnap.data();
-    } else {
-      events = {};
-    }
+    events = docSnap.exists()? docSnap.data() : {};
   }
 
-  // Save user data
   async function saveUserData() {
     if(!currentUser) return;
     const docRef = doc(db, "calendars", currentUser.uid);
     await setDoc(docRef, events);
   }
 
-  // Render month calendar
   function renderCalendar() {
     calendarView.style.display = "block";
     dailyView.style.display = "none";
-
     prevMonthBtn.style.display = "inline-block";
     nextMonthBtn.style.display = "inline-block";
 
@@ -390,7 +367,6 @@
     const daysInMonth = lastDay.getDate();
 
     monthYearEl.textContent = firstDay.toLocaleString('default', { month: 'long', year: 'numeric' });
-
     calendarEl.innerHTML = "";
 
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -402,21 +378,17 @@
     }
 
     for(let i=0; i < startDayOfWeek; i++) {
-      const blankDiv = document.createElement("div");
-      calendarEl.appendChild(blankDiv);
+      calendarEl.appendChild(document.createElement("div"));
     }
 
     for(let day=1; day <= daysInMonth; day++) {
       const date = new Date(currentYear, currentMonth, day);
       const dateStr = formatDate(date);
-
       const dayDiv = document.createElement("div");
       dayDiv.classList.add("date-number");
       dayDiv.textContent = day;
 
-      if(isToday(date)) {
-        dayDiv.classList.add("today");
-      }
+      if(isToday(date)) dayDiv.classList.add("today");
 
       if(events[dateStr] && Object.keys(events[dateStr]).length > 0) {
         const dot = document.createElement("span");
@@ -431,10 +403,7 @@
       }
 
       dayDiv.style.cursor = "pointer";
-      dayDiv.addEventListener("click", () => {
-        showDailyView(date);
-      });
-
+      dayDiv.addEventListener("click", () => showDailyView(date));
       calendarEl.appendChild(dayDiv);
     }
   }
@@ -454,10 +423,8 @@
   function showDailyView(date) {
     calendarView.style.display = "none";
     dailyView.style.display = "block";
-
     prevMonthBtn.style.display = "none";
     nextMonthBtn.style.display = "none";
-
     selectedDate = date;
 
     monthYearEl.textContent = selectedDate.toLocaleDateString('default', {
@@ -467,7 +434,6 @@
     dailyDateTitle.style.display = "none";
     showFormBtn.style.display = "inline-block";
     addEventForm.style.display = "none";
-
     renderTasksForDate(date);
   }
 
@@ -475,26 +441,19 @@
     tasksList.innerHTML = "";
     const dateStr = formatDate(date);
 
-    if(!events[dateStr]) {
+    if(!events[dateStr] || Object.keys(events[dateStr]).length === 0) {
       tasksList.textContent = "No tasks for this day.";
       return;
     }
 
     const eventEntries = Object.entries(events[dateStr]);
-    if(eventEntries.length === 0) {
-      tasksList.textContent = "No tasks for this day.";
-      return;
-    }
-
     eventEntries.sort((a, b) => a[1].time.localeCompare(b[1].time));
 
     for(const [id, event] of eventEntries) {
       const taskRow = document.createElement("div");
       taskRow.classList.add("taskRow");
       taskRow.textContent = event.time + " - " + event.title;
-      taskRow.addEventListener("click", () => {
-        openDescModal(id, event);
-      });
+      taskRow.addEventListener("click", () => openDescModal(id, event));
       tasksList.appendChild(taskRow);
     }
   }
@@ -514,23 +473,16 @@
 
   menuBtn.addEventListener("click", (e) => {
     e.stopPropagation();
-    if(menuOptions.style.display === "block") {
-      menuOptions.style.display = "none";
-    } else {
-      menuOptions.style.display = "block";
-    }
+    menuOptions.style.display = menuOptions.style.display === "block"? "none" : "block";
   });
 
-  window.addEventListener("click", () => {
-    menuOptions.style.display = "none";
-  });
+  window.addEventListener("click", () => menuOptions.style.display = "none");
 
   function resetForm() {
     eventTimeInput.value = "";
     eventTitleInput.value = "";
     eventDescInput.value = "";
-    const checkboxes = document.querySelectorAll('input[name="repeatDays"]');
-    checkboxes.forEach(cb => cb.checked = false);
+    document.querySelectorAll('input[name="repeatDays"]').forEach(cb => cb.checked = false);
   }
 
   editBtn.addEventListener("click", () => {
@@ -541,71 +493,56 @@
         descModal.style.display = "none";
         showFormBtn.style.display = "none";
         addEventForm.style.display = "block";
-        formTitle.textContent = "Edit Task";
-
+        formTitle.textContent = event.repeatGroupId? "Edit Recurring Task" : "Edit Task";
         eventTimeInput.value = event.time;
         eventTitleInput.value = event.title;
         eventDescInput.value = event.description || "";
-        
-        const checkboxes = document.querySelectorAll('input[name="repeatDays"]');
-        checkboxes.forEach(cb => cb.checked = false);
+        document.querySelectorAll('input[name="repeatDays"]').forEach(cb => cb.checked = false);
       }
     }
   });
 
-  // 🔽 UPDATED SMART DELETE BUTTON HANDLER 🔽
+  // ✅ FIXED DELETE BUTTON - handles entire series + refreshes calendar
   deleteBtn.addEventListener("click", async () => {
-    if(editingEventId && selectedDate) {
-      const dateStr = formatDate(selectedDate);
-      const currentEvent = events[dateStr][editingEventId];
-      
-      if (!currentEvent) return;
+    if(!editingEventId ||!selectedDate) return;
 
-      // Check if this task belongs to a recurring sequence group
-      if (currentEvent.repeatGroupId) {
-        const deleteEntireSeries = confirm(
-          "This is a recurring task.\n\n" +
-          "• Click OK to delete the ENTIRE series.\n" +
-          "• Click Cancel to delete ONLY this single occurrence."
-        );
+    const dateStr = formatDate(selectedDate);
+    const currentEvent = events[dateStr]?.[editingEventId];
+    if (!currentEvent) return;
 
-        if (deleteEntireSeries) {
-          // Track and wipe out all matching group occurrences across your entire collection
-          const targetGroupId = currentEvent.repeatGroupId;
-          
-          for (const dayKey in events) {
-            for (const taskKey in events[dayKey]) {
-              if (events[dayKey][taskKey].repeatGroupId === targetGroupId) {
-                delete events[dayKey][taskKey];
-              }
+    if (currentEvent.repeatGroupId) {
+      const deleteEntireSeries = confirm(
+        "This is a recurring task.\n\n" +
+        "• Click OK to delete the ENTIRE series.\n" +
+        "• Click Cancel to delete ONLY this single occurrence."
+      );
+
+      if (deleteEntireSeries) {
+        const targetGroupId = currentEvent.repeatGroupId;
+        Object.keys(events).forEach(dayKey => {
+          Object.keys(events[dayKey]).forEach(taskKey => {
+            if (events[dayKey][taskKey].repeatGroupId === targetGroupId) {
+              delete events[dayKey][taskKey];
             }
-            // Clean up empty date slots entirely
-            if (Object.keys(events[dayKey]).length === 0) {
-              delete events[dayKey];
-            }
-          }
-        } else {
-          // Delete only this single specific day instance
-          delete events[dateStr][editingEventId];
-          if(Object.keys(events[dateStr]).length === 0) delete events[dateStr];
-        }
-
+          });
+          if (Object.keys(events[dayKey]).length === 0) delete events[dayKey];
+        });
       } else {
-        // Fallback standard clear for non-repeating tasks
         delete events[dateStr][editingEventId];
         if(Object.keys(events[dateStr]).length === 0) delete events[dateStr];
       }
-
-      await saveUserData();
-      descModal.style.display = "none";
-      renderTasksForDate(selectedDate);
-      editingEventId = null;
+    } else {
+      delete events[dateStr][editingEventId];
+      if(Object.keys(events[dateStr]).length === 0) delete events[dateStr];
     }
+
+    await saveUserData();
+    descModal.style.display = "none";
+    editingEventId = null;
+    renderCalendar(); // KEY FIX: refresh month view to update dots
   });
 
-  backToMonthBtn.addEventListener("click", () => {
-    renderCalendar();
-  });
+  backToMonthBtn.addEventListener("click", () => renderCalendar());
 
   showFormBtn.addEventListener("click", () => {
     addEventForm.style.display = "block";
@@ -615,6 +552,7 @@
     editingEventId = null;
   });
 
+  // ✅ UPDATED SUBMIT - handles edit entire series
   addEventForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     if(!selectedDate) return;
@@ -622,22 +560,38 @@
     const time = eventTimeInput.value;
     const title = eventTitleInput.value;
     const description = eventDescInput.value;
-
     const checkedBoxes = document.querySelectorAll('input[name="repeatDays"]:checked');
     const repeatDays = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
 
     if(editingEventId) {
       const dateStr = formatDate(selectedDate);
-      if(!events[dateStr]) events[dateStr] = {};
-      
-      // Preserve tracking tag if it exists on updates
       const oldEvent = events[dateStr][editingEventId];
-      const repeatGroupId = oldEvent ? oldEvent.repeatGroupId : null;
 
-      events[dateStr][editingEventId] = { time, title, description, repeatGroupId };
+      if (oldEvent?.repeatGroupId) {
+        const updateEntireSeries = confirm(
+          "This is a recurring task.\n\n" +
+          "• Click OK to update the ENTIRE series.\n" +
+          "• Click Cancel to update ONLY this occurrence."
+        );
+
+        if (updateEntireSeries) {
+          const targetGroupId = oldEvent.repeatGroupId;
+          Object.keys(events).forEach(dayKey => {
+            Object.keys(events[dayKey]).forEach(taskKey => {
+              if (events[dayKey][taskKey].repeatGroupId === targetGroupId) {
+                events[dayKey][taskKey] = {...events[dayKey][taskKey], time, title, description };
+              }
+            });
+          });
+        } else {
+          events[dateStr][editingEventId] = { time, title, description, repeatGroupId: null };
+        }
+      } else {
+        events[dateStr][editingEventId] = { time, title, description };
+      }
+
     } else if(repeatDays.length > 0) {
       const loopDate = new Date(selectedDate);
-      // Stamp recurring events with a unique chain tag
       const uniqueGroupId = crypto.randomUUID();
 
       for (let i = 0; i < 90; i++) {
@@ -645,7 +599,6 @@
         if (repeatDays.includes(currentDayOfWeek)) {
           const dateStr = formatDate(loopDate);
           if (!events[dateStr]) events[dateStr] = {};
-          
           const id = crypto.randomUUID();
           events[dateStr][id] = { time, title, description, repeatGroupId: uniqueGroupId };
         }
@@ -659,11 +612,10 @@
     }
 
     await saveUserData();
-
     addEventForm.style.display = "none";
     showFormBtn.style.display = "inline-block";
-
-    renderTasksForDate(selectedDate);
+    renderCalendar();
+    showDailyView(selectedDate);
   });
 
   prevMonthBtn.addEventListener("click", () => {
