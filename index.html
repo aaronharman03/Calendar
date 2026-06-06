@@ -124,7 +124,6 @@
    .date-number {
       font-weight: bold;
     }
-    /* Login area styling */
     #loginDiv {
       padding: 1rem;
       background: #eee;
@@ -145,7 +144,6 @@
       font-size: 16px;
       cursor: pointer;
     }
-    /* New flex container for dailyView top buttons */
     #dailyViewTop {
       display: flex;
       justify-content: space-between;
@@ -158,7 +156,6 @@
       cursor: pointer;
       margin-top: 0;
     }
-    /* Repeat days styling */
    .repeat-days {
       display: flex;
       gap: 8px;
@@ -303,20 +300,20 @@
     const email = emailInput.value;
     const password = passwordInput.value;
     signInWithEmailAndPassword(auth, email, password)
-     .then(() => {
+    .then(() => {
         console.log("Logged in");
       })
-     .catch(e => alert("Login failed: " + e.message));
+    .catch(e => alert("Login failed: " + e.message));
   });
 
   signupBtn.addEventListener("click", () => {
     const email = emailInput.value;
     const password = passwordInput.value;
     createUserWithEmailAndPassword(auth, email, password)
-     .then(() => {
+    .then(() => {
         alert("Signup successful. Please login.");
       })
-     .catch(e => alert("Signup failed: " + e.message));
+    .catch(e => alert("Signup failed: " + e.message));
   });
 
   logoutBtn.addEventListener("click", () => {
@@ -340,10 +337,10 @@
 
   // Calendar variables
   let currentUser = null;
-  let currentYear, currentMonth; // for month view
-  let selectedDate; // for daily view
-  let events = {}; // cached events - structure: { "YYYY-MM-DD": { id: event }, "repeating": { id: event } }
-  let editingEventId = null; // for edits
+  let currentYear, currentMonth;
+  let selectedDate;
+  let events = {};
+  let editingEventId = null;
   let editingEventIsRepeating = false;
 
   // DOM references for calendar
@@ -379,7 +376,7 @@
   currentYear = today.getFullYear();
   currentMonth = today.getMonth();
 
-  // Load user data
+  // Load user data with migration for old format
   async function loadUserData() {
     if(!currentUser) return;
     const docRef = doc(db, "calendars", currentUser.uid);
@@ -402,7 +399,7 @@
   // Get all events for a specific date, including repeating ones
   function getEventsForDate(date) {
     const dateStr = formatDate(date);
-    const dayOfWeek = date.getDay(); // 0 = Sunday
+    const dayOfWeek = date.getDay();
     let dayEvents = [];
 
     // Add one-time events for this date
@@ -415,8 +412,7 @@
     // Add repeating events that match this day of week
     if (events.repeating) {
       Object.entries(events.repeating).forEach(([id, event]) => {
-        if (event.repeatDays && event.repeatDays.includes(dayOfWeek)) {
-          // Only show if start date is before or on this date
+        if (event.repeatDays && Array.isArray(event.repeatDays) && event.repeatDays.includes(dayOfWeek)) {
           if (!event.startDate || event.startDate <= dateStr) {
             dayEvents.push({ id,...event, isRepeating: true });
           }
@@ -442,3 +438,275 @@
 
     monthYearEl.textContent = firstDay.toLocaleString('default', { month: 'long', year: 'numeric' });
     calendarEl.innerHTML = "";
+
+    // Day names
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    for(let dayName of dayNames) {
+      const dayNameDiv = document.createElement("div");
+      dayNameDiv.classList.add("day-name");
+      dayNameDiv.textContent = dayName;
+      calendarEl.appendChild(dayNameDiv);
+    }
+
+    // Blank days before first day
+    for(let i=0; i < startDayOfWeek; i++) {
+      const blankDiv = document.createElement("div");
+      calendarEl.appendChild(blankDiv);
+    }
+
+    // Days
+    for(let day=1; day <= daysInMonth; day++) {
+      const date = new Date(currentYear, currentMonth, day);
+      const dayEvents = getEventsForDate(date);
+
+      const dayDiv = document.createElement("div");
+      dayDiv.classList.add("date-number");
+      dayDiv.textContent = day;
+
+      if(isToday(date)) {
+        dayDiv.classList.add("today");
+      }
+
+      if(dayEvents.length > 0) {
+        const hasRepeating = dayEvents.some(e => e.isRepeating);
+        const dot = document.createElement("span");
+        dot.classList.add("event-dot");
+        if (hasRepeating) dot.classList.add("repeat-dot");
+        dayDiv.appendChild(dot);
+      }
+
+      dayDiv.style.cursor = "pointer";
+      dayDiv.addEventListener("click", () => {
+        showDailyView(date);
+      });
+
+      calendarEl.appendChild(dayDiv);
+    }
+  }
+
+  function isToday(date) {
+    return date.getFullYear() === today.getFullYear() &&
+           date.getMonth() === today.getMonth() &&
+           date.getDate() === today.getDate();
+  }
+
+  function formatDate(date) {
+    return date.toISOString().split("T")[0];
+  }
+
+  function showDailyView(date) {
+    calendarView.style.display = "none";
+    dailyView.style.display = "block";
+
+    prevMonthBtn.style.display = "none";
+    nextMonthBtn.style.display = "none";
+
+    selectedDate = date;
+
+    monthYearEl.textContent = selectedDate.toLocaleDateString('default', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    dailyDateTitle.style.display = "none";
+    showFormBtn.style.display = "inline-block";
+    addEventForm.style.display = "none";
+
+    renderTasksForDate(date);
+  }
+
+  function renderTasksForDate(date) {
+    tasksList.innerHTML = "";
+    const dayEvents = getEventsForDate(date);
+
+    if(dayEvents.length === 0) {
+      tasksList.textContent = "No tasks for this day.";
+      return;
+    }
+
+    for(const event of dayEvents) {
+      const taskRow = document.createElement("div");
+      taskRow.classList.add("taskRow");
+
+      const taskInfo = document.createElement("span");
+      taskInfo.textContent = event.time + " - " + event.title;
+
+      if (event.isRepeating) {
+        const badge = document.createElement("span");
+        badge.classList.add("repeat-badge");
+        badge.textContent = "Repeating";
+        taskInfo.appendChild(badge);
+      }
+
+      taskRow.appendChild(taskInfo);
+      taskRow.addEventListener("click", () => {
+        openDescModal(event.id, event, event.isRepeating);
+      });
+      tasksList.appendChild(taskRow);
+    }
+  }
+
+  function openDescModal(id, event, isRepeating) {
+    descTitle.textContent = event.title + " (" + event.time + ")";
+    descText.innerHTML = (event.description || "No description.").replace(/\n/g, '<br>');
+
+    if (isRepeating && event.repeatDays && event.repeatDays.length > 0) {
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const repeatDaysText = event.repeatDays.map(d => dayNames[d]).join(", ");
+      repeatText.textContent = `Repeats: ${repeatDaysText}`;
+      repeatText.style.display = "block";
+    } else {
+      repeatText.style.display = "none";
+    }
+
+    descModal.style.display = "flex";
+    editingEventId = id;
+    editingEventIsRepeating = isRepeating;
+    menuOptions.style.display = "none";
+  }
+
+  closeDescModalBtn.addEventListener("click", () => {
+    descModal.style.display = "none";
+    editingEventId = null;
+  });
+
+  menuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    menuOptions.style.display = menuOptions.style.display === "block"? "none" : "block";
+  });
+
+  window.addEventListener("click", () => {
+    menuOptions.style.display = "none";
+  });
+
+  editBtn.addEventListener("click", () => {
+    if(editingEventId && selectedDate) {
+      const event = editingEventIsRepeating
+      ? events.repeating[editingEventId]
+        : events[formatDate(selectedDate)][editingEventId];
+
+      if(event) {
+        descModal.style.display = "none";
+        showFormBtn.style.display = "none";
+        addEventForm.style.display = "block";
+        formTitle.textContent = "Edit Task";
+
+        eventTimeInput.value = event.time;
+        eventTitleInput.value = event.title;
+        eventDescInput.value = event.description || "";
+
+        document.querySelectorAll('input[name="repeatDay"]').forEach(cb => {
+          cb.checked = event.repeatDays? event.repeatDays.includes(parseInt(cb.value)) : false;
+        });
+      }
+    }
+  });
+
+  deleteBtn.addEventListener("click", async () => {
+    if(editingEventId && selectedDate) {
+      if (editingEventIsRepeating) {
+        delete events.repeating[editingEventId];
+      } else {
+        const dateStr = formatDate(selectedDate);
+        if (events[dateStr]) {
+          delete events[dateStr][editingEventId];
+          if(Object.keys(events[dateStr]).length === 0) {
+            delete events[dateStr];
+          }
+        }
+      }
+      await saveUserData();
+      descModal.style.display = "none";
+      renderTasksForDate(selectedDate);
+      editingEventId = null;
+    }
+  });
+
+  backToMonthBtn.addEventListener("click", () => {
+    renderCalendar();
+  });
+
+  showFormBtn.addEventListener("click", () => {
+    addEventForm.style.display = "block";
+    showFormBtn.style.display = "none";
+    formTitle.textContent = "Add Task";
+    eventTimeInput.value = "";
+    eventTitleInput.value = "";
+    eventDescInput.value = "";
+    document.querySelectorAll('input[name="repeatDay"]').forEach(cb => cb.checked = false);
+    editingEventId = null;
+    editingEventIsRepeating = false;
+  });
+
+  addEventForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if(!selectedDate) return;
+
+    const repeatDays = Array.from(document.querySelectorAll('input[name="repeatDay"]:checked'))
+    .map(cb => parseInt(cb.value));
+
+    const dateStr = formatDate(selectedDate);
+    const id = editingEventId || crypto.randomUUID();
+
+    const eventData = {
+      time: eventTimeInput.value,
+      title: eventTitleInput.value,
+      description: eventDescInput.value,
+      repeatDays: repeatDays.length > 0? repeatDays : null,
+      startDate: dateStr
+    };
+
+    // If editing, remove from old location first
+    if (editingEventId) {
+      if (editingEventIsRepeating) {
+        delete events.repeating[editingEventId];
+      } else {
+        const oldDateStr = formatDate(selectedDate);
+        if (events[oldDateStr]) {
+          delete events[oldDateStr][editingEventId];
+          if(Object.keys(events[oldDateStr]).length === 0) {
+            delete events[oldDateStr];
+          }
+        }
+      }
+    }
+
+    // Save to appropriate location
+    if (repeatDays.length > 0) {
+      if (!events.repeating) events.repeating = {};
+      events.repeating[id] = eventData;
+    } else {
+      if(!events[dateStr]) events[dateStr] = {};
+      events[dateStr][id] = eventData;
+    }
+
+    await saveUserData();
+
+    addEventForm.style.display = "none";
+    showFormBtn.style.display = "inline-block";
+    renderTasksForDate(selectedDate);
+  });
+
+  prevMonthBtn.addEventListener("click", () => {
+    currentMonth--;
+    if(currentMonth < 0) {
+      currentMonth = 11;
+      currentYear--;
+    }
+    renderCalendar();
+  });
+
+  nextMonthBtn.addEventListener("click", () => {
+    currentMonth++;
+    if(currentMonth > 11) {
+      currentMonth = 0;
+      currentYear++;
+    }
+    renderCalendar();
+  });
+
+  renderCalendar();
+
+</script>
+
+</body>
+</html>
