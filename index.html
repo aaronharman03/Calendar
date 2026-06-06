@@ -10,7 +10,7 @@
   <link rel="apple-touch-icon" href="icon.png" />
   <base href="/Calendar/">
 
-  <title>Simple Calendar with Repeats</title>
+  <title>Simple Calendar with Smart Repeats</title>
   <style>
     body {
       font-family: sans-serif;
@@ -147,7 +147,7 @@
       cursor: pointer;
       margin-top: 0;
     }
-    /* Custom Repeat Days Checkboxes UI */
+    /* Repeat Days Buttons Wrapper */
     .repeat-days-container {
       display: flex;
       gap: 5px;
@@ -381,20 +381,18 @@
     calendarView.style.display = "block";
     dailyView.style.display = "none";
 
-    // Show month buttons and update header to Month Year
     prevMonthBtn.style.display = "inline-block";
     nextMonthBtn.style.display = "inline-block";
 
     const firstDay = new Date(currentYear, currentMonth, 1);
     const lastDay = new Date(currentYear, currentMonth + 1, 0);
-    const startDayOfWeek = firstDay.getDay(); // Sunday=0
+    const startDayOfWeek = firstDay.getDay();
     const daysInMonth = lastDay.getDate();
 
     monthYearEl.textContent = firstDay.toLocaleString('default', { month: 'long', year: 'numeric' });
 
     calendarEl.innerHTML = "";
 
-    // Day names
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     for(let dayName of dayNames) {
       const dayNameDiv = document.createElement("div");
@@ -403,13 +401,11 @@
       calendarEl.appendChild(dayNameDiv);
     }
 
-    // Blank days before first day
     for(let i=0; i < startDayOfWeek; i++) {
       const blankDiv = document.createElement("div");
       calendarEl.appendChild(blankDiv);
     }
 
-    // Days
     for(let day=1; day <= daysInMonth; day++) {
       const date = new Date(currentYear, currentMonth, day);
       const dateStr = formatDate(date);
@@ -418,12 +414,10 @@
       dayDiv.classList.add("date-number");
       dayDiv.textContent = day;
 
-      // Highlight today
       if(isToday(date)) {
         dayDiv.classList.add("today");
       }
 
-      // If there are events on this day, show a dot or highlight
       if(events[dateStr] && Object.keys(events[dateStr]).length > 0) {
         const dot = document.createElement("span");
         dot.style.backgroundColor = "#007bff";
@@ -445,32 +439,27 @@
     }
   }
 
-  // Check if date is today
   function isToday(date) {
     return date.getFullYear() === today.getFullYear() &&
            date.getMonth() === today.getMonth() &&
            date.getDate() === today.getDate();
   }
 
-  // Format date as YYYY-MM-DD local time safely
   function formatDate(date) {
     const offset = date.getTimezoneOffset();
     const localDate = new Date(date.getTime() - (offset * 60 * 1000));
     return localDate.toISOString().split("T")[0];
   }
 
-  // Show daily view for a date
   function showDailyView(date) {
     calendarView.style.display = "none";
     dailyView.style.display = "block";
 
-    // Hide month navigation buttons in day view
     prevMonthBtn.style.display = "none";
     nextMonthBtn.style.display = "none";
 
     selectedDate = date;
 
-    // Update header to full selected date
     monthYearEl.textContent = selectedDate.toLocaleDateString('default', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
@@ -482,7 +471,6 @@
     renderTasksForDate(date);
   }
 
-  // Render tasks for selected date in day view
   function renderTasksForDate(date) {
     tasksList.innerHTML = "";
     const dateStr = formatDate(date);
@@ -498,7 +486,6 @@
       return;
     }
 
-    // Sort tasks by time
     eventEntries.sort((a, b) => a[1].time.localeCompare(b[1].time));
 
     for(const [id, event] of eventEntries) {
@@ -512,23 +499,19 @@
     }
   }
 
-  // Open modal to show event description with menu options
   function openDescModal(id, event) {
     descTitle.textContent = event.title + " (" + event.time + ")";
     descText.innerHTML = (event.description || "No description.").replace(/\n/g, '<br>');
     descModal.style.display = "flex";
     editingEventId = id;
-
-    menuOptions.style.display = "none"; // hide menu initially
+    menuOptions.style.display = "none";
   }
 
-  // Close modal
   closeDescModalBtn.addEventListener("click", () => {
     descModal.style.display = "none";
     editingEventId = null;
   });
 
-  // Toggle menu options
   menuBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     if(menuOptions.style.display === "block") {
@@ -538,12 +521,10 @@
     }
   });
 
-  // Hide menu when clicking outside
   window.addEventListener("click", () => {
     menuOptions.style.display = "none";
   });
 
-  // Helper to clear form inputs and checkboxes
   function resetForm() {
     eventTimeInput.value = "";
     eventTitleInput.value = "";
@@ -552,7 +533,6 @@
     checkboxes.forEach(cb => cb.checked = false);
   }
 
-  // Edit button in modal
   editBtn.addEventListener("click", () => {
     if(editingEventId && selectedDate) {
       const dateStr = formatDate(selectedDate);
@@ -567,21 +547,55 @@
         eventTitleInput.value = event.title;
         eventDescInput.value = event.description || "";
         
-        // Uncheck checkboxes on edit since editing changes this specific single instance
         const checkboxes = document.querySelectorAll('input[name="repeatDays"]');
         checkboxes.forEach(cb => cb.checked = false);
       }
     }
   });
 
-  // Delete button in modal
+  // 🔽 UPDATED SMART DELETE BUTTON HANDLER 🔽
   deleteBtn.addEventListener("click", async () => {
     if(editingEventId && selectedDate) {
       const dateStr = formatDate(selectedDate);
-      delete events[dateStr][editingEventId];
-      if(Object.keys(events[dateStr]).length === 0) {
-        delete events[dateStr];
+      const currentEvent = events[dateStr][editingEventId];
+      
+      if (!currentEvent) return;
+
+      // Check if this task belongs to a recurring sequence group
+      if (currentEvent.repeatGroupId) {
+        const deleteEntireSeries = confirm(
+          "This is a recurring task.\n\n" +
+          "• Click OK to delete the ENTIRE series.\n" +
+          "• Click Cancel to delete ONLY this single occurrence."
+        );
+
+        if (deleteEntireSeries) {
+          // Track and wipe out all matching group occurrences across your entire collection
+          const targetGroupId = currentEvent.repeatGroupId;
+          
+          for (const dayKey in events) {
+            for (const taskKey in events[dayKey]) {
+              if (events[dayKey][taskKey].repeatGroupId === targetGroupId) {
+                delete events[dayKey][taskKey];
+              }
+            }
+            // Clean up empty date slots entirely
+            if (Object.keys(events[dayKey]).length === 0) {
+              delete events[dayKey];
+            }
+          }
+        } else {
+          // Delete only this single specific day instance
+          delete events[dateStr][editingEventId];
+          if(Object.keys(events[dateStr]).length === 0) delete events[dateStr];
+        }
+
+      } else {
+        // Fallback standard clear for non-repeating tasks
+        delete events[dateStr][editingEventId];
+        if(Object.keys(events[dateStr]).length === 0) delete events[dateStr];
       }
+
       await saveUserData();
       descModal.style.display = "none";
       renderTasksForDate(selectedDate);
@@ -589,12 +603,10 @@
     }
   });
 
-  // Back to month view button
   backToMonthBtn.addEventListener("click", () => {
     renderCalendar();
   });
 
-  // Show add task form button
   showFormBtn.addEventListener("click", () => {
     addEventForm.style.display = "block";
     showFormBtn.style.display = "none";
@@ -603,7 +615,6 @@
     editingEventId = null;
   });
 
-  // Add event form submit handler
   addEventForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     if(!selectedDate) return;
@@ -612,19 +623,22 @@
     const title = eventTitleInput.value;
     const description = eventDescInput.value;
 
-    // Read selected checkboxes
     const checkedBoxes = document.querySelectorAll('input[name="repeatDays"]:checked');
     const repeatDays = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
 
     if(editingEventId) {
-      // Editing a single, isolated specific event instance
       const dateStr = formatDate(selectedDate);
       if(!events[dateStr]) events[dateStr] = {};
-      events[dateStr][editingEventId] = { time, title, description };
+      
+      // Preserve tracking tag if it exists on updates
+      const oldEvent = events[dateStr][editingEventId];
+      const repeatGroupId = oldEvent ? oldEvent.repeatGroupId : null;
+
+      events[dateStr][editingEventId] = { time, title, description, repeatGroupId };
     } else if(repeatDays.length > 0) {
-      // Generating recurring events across the upcoming calendar stretch (e.g., 90 days out)
       const loopDate = new Date(selectedDate);
-      const uniqueGroupId = crypto.randomUUID(); // Optional tracker key
+      // Stamp recurring events with a unique chain tag
+      const uniqueGroupId = crypto.randomUUID();
 
       for (let i = 0; i < 90; i++) {
         const currentDayOfWeek = loopDate.getDay();
@@ -633,12 +647,11 @@
           if (!events[dateStr]) events[dateStr] = {};
           
           const id = crypto.randomUUID();
-          events[dateStr][id] = { time, title, description, repeatGroup: uniqueGroupId };
+          events[dateStr][id] = { time, title, description, repeatGroupId: uniqueGroupId };
         }
         loopDate.setDate(loopDate.getDate() + 1);
       }
     } else {
-      // Basic Single Event Creation
       const dateStr = formatDate(selectedDate);
       if(!events[dateStr]) events[dateStr] = {};
       const id = crypto.randomUUID();
@@ -653,7 +666,6 @@
     renderTasksForDate(selectedDate);
   });
 
-  // Prev/Next month buttons
   prevMonthBtn.addEventListener("click", () => {
     currentMonth--;
     if(currentMonth < 0) {
@@ -672,11 +684,8 @@
     renderCalendar();
   });
 
-  // Initial load
   renderCalendar();
-
 </script>
 
 </body>
 </html>
-
