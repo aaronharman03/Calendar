@@ -13,10 +13,10 @@
     body { font-family: sans-serif; margin: 0; padding: 0; background: #f0f0f0; }
     header { background: #007bff; color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center; }
     header h1 { margin: 0; font-size: 1.5rem; flex-grow: 1; text-align: center; }
-    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; }
-    .calendar-grid > div { background: white; padding: 10px; text-align: right; min-height: 80px; cursor: pointer; }
-    .day-name { background: #eee; font-weight: bold; text-align: center; }
-    .today { background: #d0eaff; }
+   .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; }
+   .calendar-grid > div { background: white; padding: 10px; text-align: right; min-height: 80px; cursor: pointer; }
+   .day-name { background: #eee; font-weight: bold; text-align: center; }
+   .today { background: #d0eaff; }
     #dailyView { display: none; padding: 1rem; }
     #addEventForm { display: none; margin-top: 1rem; }
     label { display: block; margin-top: 10px; font-weight: bold; }
@@ -25,16 +25,18 @@
     #descModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; }
     #descModalContent { background: white; padding: 20px; border-radius: 8px; max-width: 400px; width: 90%; position: relative; }
     #menuOptions button:hover { background: #f0f0f0; }
-    .date-number { font-weight: bold; }
+   .date-number { font-weight: bold; }
     #loginDiv { padding: 1rem; background: #eee; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     #loginDiv input { padding: 8px; font-size: 16px; flex-grow: 1; min-width: 180px; }
     #loginDiv button { padding: 8px 16px; font-size: 16px; cursor: pointer; }
     #dailyViewTop { display: flex; justify-content: space-between; align-items: center; padding: 0 1rem 1rem 1rem; }
     #dailyViewTop button { padding: 8px 16px; font-size: 16px; cursor: pointer; margin-top: 0; }
-    .taskRow { padding: 10px; border-bottom: 1px solid #ddd; cursor: pointer; }
-    .repeat-days-container { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
-    .repeat-day-label { display: inline-flex; align-items: center; background: #e0e0e0; padding: 6px 10px; border-radius: 4px; font-weight: normal; font-size: 14px; cursor: pointer; user-select: none; margin-top: 0; }
-    .repeat-day-label input { width: auto; margin-right: 5px; margin-top: 0; }
+   .taskRow { padding: 10px; border-bottom: 1px solid #ddd; cursor: pointer; }
+   .repeat-days-container { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+   .repeat-day-label { display: inline-flex; align-items: center; background: #e0e0e0; padding: 6px 10px; border-radius: 4px; font-weight: normal; font-size: 14px; cursor: pointer; user-select: none; margin-top: 0; }
+   .repeat-day-label input { width: auto; margin-right: 5px; margin-top: 0; }
+   .repeat-interval-row { display:flex; gap:10px; align-items:center; margin-top: 5px; }
+    #repeatInterval { width: 80px; }
   </style>
 </head>
 <body>
@@ -82,6 +84,11 @@
         <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="4">Thu</label>
         <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="5">Fri</label>
         <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="6">Sat</label>
+      </div>
+      <label>Or Repeat Every:</label>
+      <div class="repeat-interval-row">
+        <input type="number" id="repeatInterval" min="1" placeholder="X" />
+        <span>days</span>
       </div>
       <button type="submit">Save</button>
     </form>
@@ -191,13 +198,13 @@
 
   document.getElementById("loginBtn").addEventListener("click", () => {
     signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
-      .catch(e => alert("Login failed: " + e.message));
+     .catch(e => alert("Login failed: " + e.message));
   });
 
   document.getElementById("signupBtn").addEventListener("click", () => {
     createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
-      .then(() => alert("Signup successful. Please login."))
-      .catch(e => alert("Signup failed: " + e.message));
+     .then(() => alert("Signup successful. Please login."))
+     .catch(e => alert("Signup failed: " + e.message));
   });
 
   document.getElementById("logoutBtn").addEventListener("click", () => signOut(auth));
@@ -227,22 +234,23 @@
   let editingEventId = null;
   let events = {};
 
-  const monthYearEl    = document.getElementById("monthYear");
-  const calendarEl     = document.getElementById("calendar");
-  const calendarView   = document.getElementById("calendarView");
-  const dailyView      = document.getElementById("dailyView");
+  const monthYearEl = document.getElementById("monthYear");
+  const calendarEl = document.getElementById("calendar");
+  const calendarView = document.getElementById("calendarView");
+  const dailyView = document.getElementById("dailyView");
   const backToMonthBtn = document.getElementById("backToMonth");
-  const showFormBtn    = document.getElementById("showFormBtn");
-  const tasksList      = document.getElementById("tasksList");
-  const addEventForm   = document.getElementById("addEventForm");
+  const showFormBtn = document.getElementById("showFormBtn");
+  const tasksList = document.getElementById("tasksList");
+  const addEventForm = document.getElementById("addEventForm");
   const eventTimeInput = document.getElementById("eventTime");
   const eventTitleInput= document.getElementById("eventTitle");
   const eventDescInput = document.getElementById("eventDesc");
-  const formTitle      = document.getElementById("formTitle");
-  const descModal      = document.getElementById("descModal");
-  const descTitle      = document.getElementById("descTitle");
-  const descText       = document.getElementById("descText");
-  const menuOptions    = document.getElementById("menuOptions");
+  const repeatIntervalInput = document.getElementById("repeatInterval");
+  const formTitle = document.getElementById("formTitle");
+  const descModal = document.getElementById("descModal");
+  const descTitle = document.getElementById("descTitle");
+  const descText = document.getElementById("descText");
+  const menuOptions = document.getElementById("menuOptions");
 
   function renderCalendar() {
     calendarView.style.display = "block";
@@ -251,7 +259,7 @@
     document.getElementById("nextMonth").style.display = "inline-block";
 
     const firstDay = new Date(currentYear, currentMonth, 1);
-    const lastDay  = new Date(currentYear, currentMonth + 1, 0);
+    const lastDay = new Date(currentYear, currentMonth + 1, 0);
 
     monthYearEl.textContent = firstDay.toLocaleString('default', { month: 'long', year: 'numeric' });
     calendarEl.innerHTML = "";
@@ -287,13 +295,13 @@
 
   function isToday(date) {
     return date.getFullYear() === today.getFullYear() &&
-           date.getMonth()    === today.getMonth() &&
-           date.getDate()     === today.getDate();
+           date.getMonth() === today.getMonth() &&
+           date.getDate() === today.getDate();
   }
 
   function formatDate(date) {
     const offset = date.getTimezoneOffset();
-    const local  = new Date(date.getTime() - offset * 60000);
+    const local = new Date(date.getTime() - offset * 60000);
     return local.toISOString().split("T")[0];
   }
 
@@ -324,8 +332,8 @@
     }
 
     Object.entries(dayEvents)
-      .sort((a, b) => a[1].time.localeCompare(b[1].time))
-      .forEach(([id, event]) => {
+     .sort((a, b) => a[1].time.localeCompare(b[1].time))
+     .forEach(([id, event]) => {
         const row = document.createElement("div");
         row.classList.add("taskRow");
         row.textContent = event.time + " - " + event.title;
@@ -335,7 +343,14 @@
   }
 
   function openDescModal(id, event) {
-    descTitle.textContent = event.title + " (" + event.time + ")";
+    let repeatInfo = "";
+    if (event.repeatInterval) {
+      repeatInfo = ` (Every ${event.repeatInterval} days)`;
+    } else if (event.repeatDays?.length) {
+      const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      repeatInfo = ` (Repeats: ${event.repeatDays.map(d => dayNames[d]).join(', ')})`;
+    }
+    descTitle.textContent = event.title + " (" + event.time + ")" + repeatInfo;
     descText.innerHTML = (event.description || "No description.").replace(/\n/g, '<br>');
     descModal.style.display = "flex";
     editingEventId = id;
@@ -349,27 +364,30 @@
 
   document.getElementById("menuBtn").addEventListener("click", e => {
     e.stopPropagation();
-    menuOptions.style.display = menuOptions.style.display === "block" ? "none" : "block";
+    menuOptions.style.display = menuOptions.style.display === "block"? "none" : "block";
   });
 
   window.addEventListener("click", () => menuOptions.style.display = "none");
 
   document.getElementById("editBtn").addEventListener("click", () => {
-    if (!editingEventId || !selectedDate) return;
+    if (!editingEventId ||!selectedDate) return;
     const event = events[formatDate(selectedDate)][editingEventId];
     if (!event) return;
     descModal.style.display = "none";
     showFormBtn.style.display = "none";
     addEventForm.style.display = "block";
-    formTitle.textContent = event.repeatGroupId ? "Edit Recurring Task" : "Edit Task";
-    eventTimeInput.value  = event.time;
+    formTitle.textContent = event.repeatGroupId? "Edit Recurring Task" : "Edit Task";
+    eventTimeInput.value = event.time;
     eventTitleInput.value = event.title;
-    eventDescInput.value  = event.description || "";
-    document.querySelectorAll('input[name="repeatDays"]').forEach(cb => cb.checked = false);
+    eventDescInput.value = event.description || "";
+    repeatIntervalInput.value = event.repeatInterval || "";
+    document.querySelectorAll('input[name="repeatDays"]').forEach(cb => {
+      cb.checked = event.repeatDays?.includes(parseInt(cb.value)) || false;
+    });
   });
 
   document.getElementById("deleteBtn").addEventListener("click", async () => {
-    if (!editingEventId || !selectedDate) return;
+    if (!editingEventId ||!selectedDate) return;
     const dateStr = formatDate(selectedDate);
     const currentEvent = events[dateStr]?.[editingEventId];
     if (!currentEvent) return;
@@ -402,6 +420,7 @@
     eventTimeInput.value = "";
     eventTitleInput.value = "";
     eventDescInput.value = "";
+    repeatIntervalInput.value = "";
     document.querySelectorAll('input[name="repeatDays"]').forEach(cb => cb.checked = false);
   }
 
@@ -419,16 +438,22 @@
     e.preventDefault();
     if (!selectedDate) return;
 
-    const time        = eventTimeInput.value;
-    const title       = eventTitleInput.value;
+    const time = eventTimeInput.value;
+    const title = eventTitleInput.value;
     const description = eventDescInput.value;
-    const repeatDays  = Array.from(document.querySelectorAll('input[name="repeatDays"]:checked'))
-                             .map(cb => parseInt(cb.value));
+    const repeatDays = Array.from(document.querySelectorAll('input[name="repeatDays"]:checked'))
+                          .map(cb => parseInt(cb.value));
+    const repeatInterval = parseInt(repeatIntervalInput.value) || null;
+
+    if (repeatDays.length > 0 && repeatInterval) {
+      alert("Please choose either 'Repeat on Days' OR 'Repeat Every X Days', not both.");
+      return;
+    }
 
     if (editingEventId) {
-      const dateStr  = formatDate(selectedDate);
+      const dateStr = formatDate(selectedDate);
       const oldEvent = events[dateStr][editingEventId];
-      const changes  = { time, title, description };
+      const changes = { time, title, description };
 
       if (oldEvent?.repeatGroupId) {
         const updateAll = confirm(
@@ -439,26 +464,26 @@
         if (updateAll) {
           await updateSeriesByGroupId(oldEvent.repeatGroupId, changes);
         } else {
-          const updated = { ...oldEvent, ...changes, repeatGroupId: null };
+          const updated = {...oldEvent,...changes, repeatGroupId: null, repeatInterval: null, repeatDays: null };
           await saveTask(editingEventId, updated);
           events[dateStr][editingEventId] = updated;
         }
       } else {
-        const updated = { ...oldEvent, ...changes };
+        const updated = {...oldEvent,...changes };
         await saveTask(editingEventId, updated);
         events[dateStr][editingEventId] = updated;
       }
 
     } else if (repeatDays.length > 0) {
-      const groupId  = crypto.randomUUID();
+      const groupId = crypto.randomUUID();
       const loopDate = new Date(selectedDate);
-      const batch    = writeBatch(db);
+      const batch = writeBatch(db);
 
       for (let i = 0; i < 90; i++) {
         if (repeatDays.includes(loopDate.getDay())) {
           const dateStr = formatDate(loopDate);
-          const id      = crypto.randomUUID();
-          const taskData = { date: dateStr, time, title, description, repeatGroupId: groupId };
+          const id = crypto.randomUUID();
+          const taskData = { date: dateStr, time, title, description, repeatGroupId: groupId, repeatDays };
           batch.set(doc(tasksCol(), id), taskData);
           if (!events[dateStr]) events[dateStr] = {};
           events[dateStr][id] = taskData;
@@ -467,9 +492,28 @@
       }
       await batch.commit();
 
+    } else if (repeatInterval && repeatInterval > 0) {
+      const groupId = crypto.randomUUID();
+      const startDate = new Date(selectedDate);
+      const batch = writeBatch(db);
+
+      const occurrences = Math.ceil(90 / repeatInterval);
+      for (let i = 0; i < occurrences; i++) {
+        const loopDate = new Date(startDate);
+        loopDate.setDate(startDate.getDate() + (i * repeatInterval));
+
+        const dateStr = formatDate(loopDate);
+        const id = crypto.randomUUID();
+        const taskData = { date: dateStr, time, title, description, repeatGroupId: groupId, repeatInterval };
+        batch.set(doc(tasksCol(), id), taskData);
+        if (!events[dateStr]) events[dateStr] = {};
+        events[dateStr][id] = taskData;
+      }
+      await batch.commit();
+
     } else {
-      const dateStr  = formatDate(selectedDate);
-      const id       = crypto.randomUUID();
+      const dateStr = formatDate(selectedDate);
+      const id = crypto.randomUUID();
       const taskData = { date: dateStr, time, title, description, repeatGroupId: null };
       await saveTask(id, taskData);
       if (!events[dateStr]) events[dateStr] = {};
