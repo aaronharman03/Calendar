@@ -286,11 +286,12 @@
 
       if (isToday(date)) dayDiv.classList.add("today");
 
-      if (events[dateStr] && Object.keys(events[dateStr]).length > 0) {
-        const dot = document.createElement("span");
-        dot.style.cssText = "background:#007bff;border-radius:50%;width:8px;height:8px;display:inline-block;margin-left:5px;vertical-align:middle;";
-        dayDiv.appendChild(dot);
-      }
+  if (events[dateStr] && Object.keys(events[dateStr]).length > 0) {
+  const dot = document.createElement("span");
+  const dotColor = isToday(date)? "#28a745" : "#007bff"; // green for today, blue for others
+  dot.style.cssText = `background:${dotColor};border-radius:50%;width:8px;height:8px;display:inline-block;margin-left:5px;vertical-align:middle;`;
+  dayDiv.appendChild(dot);
+}
 
       dayDiv.addEventListener("click", () => showDailyView(date));
       calendarEl.appendChild(dayDiv);
