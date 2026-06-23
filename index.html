@@ -539,8 +539,11 @@
 
       const block = document.createElement("div");
       block.classList.add("event-block");
-      block.style.top = `${event.start}px`;
-      block.style.height = `${duration}px`;
+      
+      // Fixed: Layering offset to separate back-to-back tasks physically by 1px
+      block.style.top = `${event.start + 1}px`;
+      block.style.height = `${Math.max(15, duration - 1)}px`;
+      
       block.style.left = `calc(50px + ${leftPercent}%)`;
       block.style.width = `calc(${widthPercent}% - 8px)`;
       block.style.background = event.color || "#4285f4";
