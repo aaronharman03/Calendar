@@ -137,12 +137,32 @@
     }
 .event-block:hover { opacity: 0.9; }
 .repeat-days-container { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
-.repeat-day-label { display: inline-flex; align-items: center; background: #e0e0e0; padding: 6px 10px; border-radius: 4px; font-weight: normal; font-size: 14px; cursor: pointer; user-select: none; margin-top: 0; }
+.repeat-day-label { display: inline-flex; align-items: center; background: #e0e0; padding: 6px 10px; border-radius: 4px; font-weight: normal; font-size: 14px; cursor: pointer; user-select: none; margin-top: 0; }
 .repeat-day-label input { width: auto; margin-right: 5px; margin-top: 0; }
 .repeat-interval-row { display:flex; gap:10px; align-items:center; margin-top: 5px; }
     #repeatInterval { width: 80px; }
-.time-row { display: flex; gap: 10px; }
-.time-row > div { flex: 1; }
+.time-row {
+      display: flex;
+      gap: 16px;
+      margin-top: 4px;
+    }
+.time-row > div {
+      flex: 1;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 8px;
+      background: #fafafa;
+    }
+.time-row label {
+      margin-top: 0;
+      font-size: 13px;
+      color: #555;
+    }
+.time-row input {
+      margin-top: 4px;
+      border: 1px solid #ccc;
+      background: white;
+    }
 .form-buttons { display: flex; gap: 10px; justify-content: flex-end; }
   </style>
 </head>
@@ -182,13 +202,14 @@
     <div class="modalContent">
       <h3 id="formTitle">Add Task</h3>
       <form id="addEventForm">
+        <label>Time:</label>
         <div class="time-row">
           <div>
-            <label>Start Time:</label>
+            <label>Start</label>
             <input type="time" id="eventStartTime" required />
           </div>
           <div>
-            <label>End Time:</label>
+            <label>End</label>
             <input type="time" id="eventEndTime" required />
           </div>
         </div>
@@ -655,7 +676,7 @@
     const color = eventColorInput.value;
     const description = eventDescInput.value;
     const repeatDays = Array.from(document.querySelectorAll('input[name="repeatDays"]:checked'))
-      .map(cb => parseInt(cb.value));
+     .map(cb => parseInt(cb.value));
     const repeatInterval = parseInt(repeatIntervalInput.value) || null;
     const endDateValue = repeatEndDateInput.value;
 
