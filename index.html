@@ -68,43 +68,39 @@
       overflow: hidden;
     }
 
-    /* === FORM ALIGNMENT FIXES === */
+    /* === ONLY ALIGNMENT FIX - DAYS FORMAT UNCHANGED === */
     #addEventForm {
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
-
+    #addEventForm > div {
+      width: 100%;
+    }
     label {
       display: block;
-      margin-top: 0;
       font-weight: bold;
+      margin-bottom: 4px;
     }
-
     input, textarea {
       width: 100%;
       padding: 8px;
-      margin-top: 4px;
       box-sizing: border-box;
       font-size: 16px;
       touch-action: manipulation;
       border: 1px solid #ccc;
       border-radius: 4px;
     }
-
     input[type="color"] {
       height: 38px;
       padding: 4px;
     }
-
     button {
-      margin-top: 0;
       padding: 8px 12px;
       cursor: pointer;
       font-size: 16px;
       touch-action: manipulation;
     }
-
   .time-row {
       display: flex;
       gap: 12px;
@@ -115,9 +111,10 @@
       min-width: 0;
     }
 
+   /* BACK TO YOUR ORIGINAL 5 COLUMNS */
   .repeat-days-container {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 6px;
       margin-top: 4px;
     }
@@ -132,9 +129,8 @@
       font-size: 14px;
       cursor: pointer;
       user-select: none;
-      margin-top: 0;
     }
-  .repeat-day-label input { width: auto; margin-right: 5px; margin-top: 0; }
+  .repeat-day-label input { width: auto; margin: 0 5px 0 0; }
 
   .repeat-interval-row {
       display: flex;
@@ -146,14 +142,13 @@
       width: 80px;
       flex-shrink: 0;
     }
-
   .form-buttons {
       display: flex;
       gap: 10px;
       justify-content: flex-end;
       margin-top: 8px;
     }
-    /* === END FIXES === */
+    /* === END FIX === */
 
   .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
   .modalContent { background: white; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%; position: relative; max-height: 90vh; overflow-y: auto; box-sizing: border-box; }
@@ -176,7 +171,6 @@
       padding: 8px 16px;
       font-size: 16px;
       cursor: pointer;
-      margin-top: 0;
     }
     #tasksList {
       position: absolute;
@@ -292,6 +286,7 @@
             <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="5">Fri</label>
             <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="6">Sat</label>
           </div>
+        </div>
         <div>
           <label>Or Repeat Every:</label>
           <div class="repeat-interval-row">
@@ -743,7 +738,7 @@
     const color = eventColorInput.value;
     const description = eventDescInput.value;
     const repeatDays = Array.from(document.querySelectorAll('input[name="repeatDays"]:checked'))
-    .map(cb => parseInt(cb.value));
+ .map(cb => parseInt(cb.value));
     const repeatInterval = parseInt(repeatIntervalInput.value) || null;
     const endDateValue = repeatEndDateInput.value;
 
