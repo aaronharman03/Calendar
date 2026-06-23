@@ -125,15 +125,18 @@
     .event-block {
       position: absolute;
       border-radius: 4px;
-      padding: 6px 8px;
+      padding: 2px 6px;  /* Fixed: Reduced padding to prevent internal text clipping */
       color: white;
       font-size: 14px;
-      line-height: 1.3;
+      line-height: 1.2;
       overflow: hidden;
       cursor: pointer;
       box-sizing: border-box;
       border: 1px solid rgba(0,0,0,0.1);
       min-height: 20px;
+      display: flex;       /* Fixed: Center text vertically for narrow blocks */
+      align-items: center;
+      word-break: break-all;
     }
     .event-block:hover { opacity: 0.9; }
     
@@ -498,7 +501,7 @@
       const [eh, em] = event.endTime.split(':').map(Number);
       return {
         id,
-...event,
+        ...event,
         start: sh * 60 + sm,
         end: eh * 60 + em
       };
@@ -537,6 +540,15 @@
       block.style.width = `calc(${widthPercent}% - 8px)`;
       block.style.background = event.color || "#4285f4";
       block.textContent = `${event.startTime}-${event.endTime} ${event.title}`;
+      
+      /* Fixed: Scale fonts down dynamically for tight task limits */
+      if (duration < 25) {
+        block.style.fontSize = "11px";
+        block.style.padding = "0px 4px";
+      } else if (duration < 40) {
+        block.style.fontSize = "12px";
+      }
+
       block.addEventListener("click", () => openDescModal(event.id, event));
 
       tasksListInner.appendChild(block);
