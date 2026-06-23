@@ -13,19 +13,18 @@
     body { font-family: sans-serif; margin: 0; padding: 0; background: #f0f0f0; }
     header { background: #007bff; color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center; }
     header h1 { margin: 0; font-size: 1.5rem; flex-grow: 1; text-align: center; }
-   .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; }
-   .calendar-grid > div { background: white; padding: 10px; text-align: right; min-height: 80px; cursor: pointer; }
-   .day-name { background: #eee; font-weight: bold; text-align: center; }
-   .today { background: #d0eaff; }
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; }
+  .calendar-grid > div { background: white; padding: 10px; text-align: right; min-height: 80px; cursor: pointer; }
+  .day-name { background: #eee; font-weight: bold; text-align: center; }
+  .today { background: #d0eaff; }
     #dailyView { display: none; padding: 1rem; }
-    #addEventForm { display: none; margin-top: 1rem; }
     label { display: block; margin-top: 10px; font-weight: bold; }
     input, textarea { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; font-size: 16px; }
     button { margin-top: 10px; padding: 8px 12px; cursor: pointer; font-size: 16px; }
-    #descModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 100; }
-    #descModalContent { background: white; padding: 20px; border-radius: 8px; max-width: 400px; width: 90%; position: relative; }
+   .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 100; }
+   .modalContent { background: white; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%; position: relative; max-height: 90vh; overflow-y: auto; }
     #menuOptions button:hover { background: #f0f0f0; }
-   .date-number { font-weight: bold; }
+  .date-number { font-weight: bold; }
     #loginDiv { padding: 1rem; background: #eee; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     #loginDiv input { padding: 8px; font-size: 16px; flex-grow: 1; min-width: 180px; }
     #loginDiv button { padding: 8px 16px; font-size: 16px; cursor: pointer; }
@@ -38,14 +37,14 @@
       border: 1px solid #ddd;
       overflow-y: auto;
     }
-   .hour-line {
+  .hour-line {
       position: absolute;
       left: 0; right: 0;
       border-top: 1px solid #eee;
       height: 60px;
       pointer-events: none;
     }
-   .hour-label {
+  .hour-label {
       position: absolute;
       left: 4px;
       top: -8px;
@@ -54,7 +53,7 @@
       background: #fff;
       padding: 0 2px;
     }
-   .event-block {
+  .event-block {
       position: absolute;
       border-radius: 4px;
       padding: 4px 6px;
@@ -65,14 +64,15 @@
       box-sizing: border-box;
       border: 1px solid rgba(0,0,0,0.1);
     }
-   .event-block:hover { opacity: 0.9; }
-   .repeat-days-container { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
-   .repeat-day-label { display: inline-flex; align-items: center; background: #e0e0e0; padding: 6px 10px; border-radius: 4px; font-weight: normal; font-size: 14px; cursor: pointer; user-select: none; margin-top: 0; }
-   .repeat-day-label input { width: auto; margin-right: 5px; margin-top: 0; }
-   .repeat-interval-row { display:flex; gap:10px; align-items:center; margin-top: 5px; }
+  .event-block:hover { opacity: 0.9; }
+  .repeat-days-container { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+  .repeat-day-label { display: inline-flex; align-items: center; background: #e0e0e0; padding: 6px 10px; border-radius: 4px; font-weight: normal; font-size: 14px; cursor: pointer; user-select: none; margin-top: 0; }
+  .repeat-day-label input { width: auto; margin-right: 5px; margin-top: 0; }
+  .repeat-interval-row { display:flex; gap:10px; align-items:center; margin-top: 5px; }
     #repeatInterval { width: 80px; }
-   .time-row { display: flex; gap: 10px; }
-   .time-row > div { flex: 1; }
+  .time-row { display: flex; gap: 10px; }
+  .time-row > div { flex: 1; }
+  .form-buttons { display: flex; gap: 10px; justify-content: flex-end; }
   </style>
 </head>
 <body>
@@ -103,48 +103,56 @@
       <button id="showFormBtn">+ Add Task</button>
     </div>
     <div id="tasksList"></div>
-    <form id="addEventForm">
-      <h3 id="formTitle">Add Task</h3>
-      <div class="time-row">
-        <div>
-          <label>Start Time:</label>
-          <input type="time" id="eventStartTime" required />
-        </div>
-        <div>
-          <label>End Time:</label>
-          <input type="time" id="eventEndTime" required />
-        </div>
-      </div>
-      <label>Title:</label>
-      <input type="text" id="eventTitle" required />
-      <label>Color:</label>
-      <input type="color" id="eventColor" value="#4285f4" />
-      <label>Description:</label>
-      <textarea id="eventDesc" rows="4"></textarea>
-      <label>Repeat on Days:</label>
-      <div class="repeat-days-container">
-        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="0">Sun</label>
-        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="1">Mon</label>
-        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="2">Tue</label>
-        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="3">Wed</label>
-        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="4">Thu</label>
-        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="5">Fri</label>
-        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="6">Sat</label>
-      </div>
-      <label>Or Repeat Every:</label>
-      <div class="repeat-interval-row">
-        <input type="number" id="repeatInterval" min="1" placeholder="X" />
-        <span>days</span>
-      </div>
-      <label>Repeat End Date (optional):</label>
-      <input type="date" id="repeatEndDate" />
-      <small style="color:#666;">Leave blank for 1 year from start date</small>
-      <button type="submit">Save</button>
-    </form>
   </div>
 
-  <div id="descModal">
-    <div id="descModalContent">
+  <div id="formModal" class="modal">
+    <div class="modalContent">
+      <h3 id="formTitle">Add Task</h3>
+      <form id="addEventForm">
+        <div class="time-row">
+          <div>
+            <label>Start Time:</label>
+            <input type="time" id="eventStartTime" required />
+          </div>
+          <div>
+            <label>End Time:</label>
+            <input type="time" id="eventEndTime" required />
+          </div>
+        </div>
+        <label>Title:</label>
+        <input type="text" id="eventTitle" required />
+        <label>Color:</label>
+        <input type="color" id="eventColor" value="#4285f4" />
+        <label>Description:</label>
+        <textarea id="eventDesc" rows="4"></textarea>
+        <label>Repeat on Days:</label>
+        <div class="repeat-days-container">
+          <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="0">Sun</label>
+          <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="1">Mon</label>
+          <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="2">Tue</label>
+          <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="3">Wed</label>
+          <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="4">Thu</label>
+          <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="5">Fri</label>
+          <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="6">Sat</label>
+        </div>
+        <label>Or Repeat Every:</label>
+        <div class="repeat-interval-row">
+          <input type="number" id="repeatInterval" min="1" placeholder="X" />
+          <span>days</span>
+        </div>
+        <label>Repeat End Date (optional):</label>
+        <input type="date" id="repeatEndDate" />
+        <small style="color:#666;">Leave blank for 1 year from start date</small>
+        <div class="form-buttons">
+          <button type="button" id="cancelFormBtn">Cancel</button>
+          <button type="submit">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="descModal" class="modal">
+    <div class="modalContent">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <h3 id="descTitle" style="margin: 0;"></h3>
         <div style="position: relative;">
@@ -247,13 +255,13 @@
 
   document.getElementById("loginBtn").addEventListener("click", () => {
     signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
-  .catch(e => alert("Login failed: " + e.message));
+.catch(e => alert("Login failed: " + e.message));
   });
 
   document.getElementById("signupBtn").addEventListener("click", () => {
     createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
-  .then(() => alert("Signup successful. Please login."))
-  .catch(e => alert("Signup failed: " + e.message));
+.then(() => alert("Signup successful. Please login."))
+.catch(e => alert("Signup failed: " + e.message));
   });
 
   document.getElementById("logoutBtn").addEventListener("click", () => signOut(auth));
@@ -290,6 +298,7 @@
   const backToMonthBtn = document.getElementById("backToMonth");
   const showFormBtn = document.getElementById("showFormBtn");
   const tasksList = document.getElementById("tasksList");
+  const formModal = document.getElementById("formModal");
   const addEventForm = document.getElementById("addEventForm");
   const eventStartTimeInput = document.getElementById("eventStartTime");
   const eventEndTimeInput = document.getElementById("eventEndTime");
@@ -299,6 +308,7 @@
   const repeatIntervalInput = document.getElementById("repeatInterval");
   const repeatEndDateInput = document.getElementById("repeatEndDate");
   const formTitle = document.getElementById("formTitle");
+  const cancelFormBtn = document.getElementById("cancelFormBtn");
   const descModal = document.getElementById("descModal");
   const descTitle = document.getElementById("descTitle");
   const descText = document.getElementById("descText");
@@ -369,8 +379,6 @@
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
 
-    showFormBtn.style.display = "inline-block";
-    addEventForm.style.display = "none";
     renderTasksForDate(date);
   }
 
@@ -379,7 +387,6 @@
     const dateStr = formatDate(date);
     const dayEvents = events[dateStr];
 
-    // Draw hour lines 0-23
     for (let h = 0; h < 24; h++) {
       const line = document.createElement("div");
       line.classList.add("hour-line");
@@ -398,19 +405,17 @@
       return;
     }
 
-    // Convert events to array with start/end minutes
     const eventArray = Object.entries(dayEvents).map(([id, event]) => {
       const [sh, sm] = event.startTime.split(':').map(Number);
       const [eh, em] = event.endTime.split(':').map(Number);
       return {
         id,
-     ...event,
+  ...event,
         start: sh * 60 + sm,
         end: eh * 60 + em
       };
     }).sort((a, b) => a.start - b.start || a.end - b.end);
 
-    // Layout algorithm: assign columns for overlaps
     const columns = [];
     eventArray.forEach(event => {
       let colIndex = 0;
@@ -421,7 +426,6 @@
       columns[colIndex] = event.end;
     });
 
-    // For each event, find how many total columns it overlaps with
     eventArray.forEach(event => {
       let maxOverlaps = 1;
       eventArray.forEach(other => {
@@ -432,7 +436,6 @@
       event.totalColumns = maxOverlaps;
     });
 
-    // Render blocks
     eventArray.forEach(event => {
       const duration = event.end - event.start;
       const widthPercent = 100 / event.totalColumns;
@@ -491,8 +494,7 @@
     const event = events[formatDate(selectedDate)][editingEventId];
     if (!event) return;
     descModal.style.display = "none";
-    showFormBtn.style.display = "none";
-    addEventForm.style.display = "block";
+    formModal.style.display = "flex";
     formTitle.textContent = event.repeatGroupId? "Edit Recurring Task" : "Edit Task";
     eventStartTimeInput.value = event.startTime;
     eventEndTimeInput.value = event.endTime;
@@ -534,6 +536,7 @@
     descModal.style.display = "none";
     editingEventId = null;
     renderCalendar();
+    showDailyView(selectedDate);
   });
 
   function resetForm() {
@@ -550,11 +553,22 @@
   backToMonthBtn.addEventListener("click", () => renderCalendar());
 
   showFormBtn.addEventListener("click", () => {
-    addEventForm.style.display = "block";
-    showFormBtn.style.display = "none";
+    formModal.style.display = "flex";
     formTitle.textContent = "Add Task";
     resetForm();
     editingEventId = null;
+  });
+
+  cancelFormBtn.addEventListener("click", () => {
+    formModal.style.display = "none";
+    editingEventId = null;
+  });
+
+  formModal.addEventListener("click", (e) => {
+    if (e.target === formModal) {
+      formModal.style.display = "none";
+      editingEventId = null;
+    }
   });
 
   addEventForm.addEventListener("submit", async e => {
@@ -567,7 +581,7 @@
     const color = eventColorInput.value;
     const description = eventDescInput.value;
     const repeatDays = Array.from(document.querySelectorAll('input[name="repeatDays"]:checked'))
-                       .map(cb => parseInt(cb.value));
+                    .map(cb => parseInt(cb.value));
     const repeatInterval = parseInt(repeatIntervalInput.value) || null;
     const endDateValue = repeatEndDateInput.value;
 
@@ -667,8 +681,8 @@
       events[dateStr][id] = taskData;
     }
 
-    addEventForm.style.display = "none";
-    showFormBtn.style.display = "inline-block";
+    formModal.style.display = "none";
+    editingEventId = null;
     renderCalendar();
     showDailyView(selectedDate);
   });
