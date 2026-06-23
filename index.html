@@ -137,21 +137,17 @@
     }
 .event-block:hover { opacity: 0.9; }
 .repeat-days-container { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
-.repeat-day-label { display: inline-flex; align-items: center; background: #e0e0; padding: 6px 10px; border-radius: 4px; font-weight: normal; font-size: 14px; cursor: pointer; user-select: none; margin-top: 0; }
+.repeat-day-label { display: inline-flex; align-items: center; background: #e0e0e0; padding: 6px 10px; border-radius: 4px; font-weight: normal; font-size: 14px; cursor: pointer; user-select: none; margin-top: 0; }
 .repeat-day-label input { width: auto; margin-right: 5px; margin-top: 0; }
 .repeat-interval-row { display:flex; gap:10px; align-items:center; margin-top: 5px; }
     #repeatInterval { width: 80px; }
 .time-row {
       display: flex;
-      gap: 16px;
+      gap: 12px;
       margin-top: 4px;
     }
 .time-row > div {
       flex: 1;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      padding: 8px;
-      background: #fafafa;
     }
 .time-row label {
       margin-top: 0;
@@ -160,8 +156,6 @@
     }
 .time-row input {
       margin-top: 4px;
-      border: 1px solid #ccc;
-      background: white;
     }
 .form-buttons { display: flex; gap: 10px; justify-content: flex-end; }
   </style>
@@ -256,7 +250,6 @@
             <button id="deleteBtn" style="display:block; width:100%; padding: 5px 10px; border: none; background: white; text-align: left; cursor: pointer; color: red;">Delete</button>
           </div>
         </div>
-      </div>
       <p id="descText" style="margin-top: 10px;"></p>
       <button id="closeDescModal">Close</button>
     </div>
@@ -676,7 +669,7 @@
     const color = eventColorInput.value;
     const description = eventDescInput.value;
     const repeatDays = Array.from(document.querySelectorAll('input[name="repeatDays"]:checked'))
-     .map(cb => parseInt(cb.value));
+    .map(cb => parseInt(cb.value));
     const repeatInterval = parseInt(repeatIntervalInput.value) || null;
     const endDateValue = repeatEndDateInput.value;
 
