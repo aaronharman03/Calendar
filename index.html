@@ -57,31 +57,9 @@
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
     }
-.calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 1px;
-      background: #ccc;
-    }
-.calendar-grid > div {
-      background: white;
-      padding: 10px;
-      text-align: center;
-      min-height: 80px;
-      cursor: pointer;
-      box-sizing: border-box;
-    }
-.day-name {
-      background: #eee;
-      font-weight: bold;
-      text-align: center;
-      position: sticky;
-      top: 0;
-      z-index: 5;
-      min-height: auto;
-      padding: 10px;
-      cursor: default;
-    }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; }
+.calendar-grid > div { background: white; padding: 10px; text-align: right; min-height: 80px; cursor: pointer; }
+.day-name { background: #eee; font-weight: bold; text-align: center; position: sticky; top: 0; z-index: 5; }
 .today { background: #d0eaff; }
     #dailyView {
       display: none;
@@ -89,31 +67,11 @@
       background: #f0f0f0;
       overflow: hidden;
     }
-    label { display: block; margin-top: 12px; font-weight: bold; }
-    input, textarea {
-      width: 100%;
-      padding: 8px;
-      margin-top: 4px;
-      box-sizing: border-box;
-      font-size: 16px;
-      touch-action: manipulation;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-    input[type="color"] { padding: 2px; height: 40px; }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input, textarea { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; font-size: 16px; touch-action: manipulation; }
     button { margin-top: 10px; padding: 8px 12px; cursor: pointer; font-size: 16px; touch-action: manipulation; }
 .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
-.modalContent {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      max-width: 500px;
-      width: 90%;
-      position: relative;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-sizing: border-box;
-    }
+.modalContent { background: white; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%; position: relative; max-height: 90vh; overflow-y: auto; }
     #menuOptions button:hover { background: #f0f0f0; }
 .date-number { font-weight: bold; }
     #dailyViewTop {
@@ -178,62 +136,14 @@
       min-height: 20px;
     }
 .event-block:hover { opacity: 0.9; }
-.repeat-days-container {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 5px;
-      margin-top: 4px;
-    }
-.repeat-day-label {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #e0e0e0;
-      padding: 6px 4px;
-      border-radius: 4px;
-      font-weight: normal;
-      font-size: 13px;
-      cursor: pointer;
-      user-select: none;
-      margin-top: 0;
-    }
-.repeat-day-label input { width: auto; margin: 0 4px 0 0; }
-.repeat-interval-row {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      margin-top: 4px;
-    }
-    #repeatInterval { width: 80px; margin-top: 0; }
- /* START/END BOXES SHRUNK TO FIT CONTENT */
-.time-row {
-      display: flex;
-      gap: 16px;
-      margin-top: 4px;
-      align-items: flex-end;
-    }
-.time-row > div {
-      flex: 0 0 auto;
-      width: 130px; /* Adjust this to make boxes bigger/smaller */
-    }
-.time-row label {
-      margin-top: 0;
-      margin-bottom: 4px;
-    }
-.time-row input[type="time"] {
-      margin-top: 0;
-    }
-.form-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
-.form-buttons button { margin-top: 0; }
-
-    @media (max-width: 400px) {
-  .time-row > div {
-        width: 120px;
-      }
-  .repeat-days-container {
-        grid-template-columns: repeat(4, 1fr);
-      }
-    }
+.repeat-days-container { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+.repeat-day-label { display: inline-flex; align-items: center; background: #e0e0e0; padding: 6px 10px; border-radius: 4px; font-weight: normal; font-size: 14px; cursor: pointer; user-select: none; margin-top: 0; }
+.repeat-day-label input { width: auto; margin-right: 5px; margin-top: 0; }
+.repeat-interval-row { display:flex; gap:10px; align-items:center; margin-top: 5px; }
+    #repeatInterval { width: 80px; }
+.time-row { display: flex; gap: 10px; }
+.time-row > div { flex: 1; }
+.form-buttons { display: flex; gap: 10px; justify-content: flex-end; }
   </style>
 </head>
 <body>
@@ -274,11 +184,11 @@
       <form id="addEventForm">
         <div class="time-row">
           <div>
-            <label for="eventStartTime">Start Time</label>
+            <label>Start Time:</label>
             <input type="time" id="eventStartTime" required />
           </div>
           <div>
-            <label for="eventEndTime">End Time</label>
+            <label>End Time:</label>
             <input type="time" id="eventEndTime" required />
           </div>
         </div>
@@ -745,7 +655,7 @@
     const color = eventColorInput.value;
     const description = eventDescInput.value;
     const repeatDays = Array.from(document.querySelectorAll('input[name="repeatDays"]:checked'))
-   .map(cb => parseInt(cb.value));
+      .map(cb => parseInt(cb.value));
     const repeatInterval = parseInt(repeatIntervalInput.value) || null;
     const endDateValue = repeatEndDateInput.value;
 
