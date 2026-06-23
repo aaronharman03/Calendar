@@ -13,38 +13,66 @@
     body { font-family: sans-serif; margin: 0; padding: 0; background: #f0f0f0; }
     header { background: #007bff; color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center; }
     header h1 { margin: 0; font-size: 1.5rem; flex-grow: 1; text-align: center; }
- .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; }
- .calendar-grid > div { background: white; padding: 10px; text-align: right; min-height: 80px; cursor: pointer; }
- .day-name { background: #eee; font-weight: bold; text-align: center; }
- .today { background: #d0eaff; }
+   .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; }
+   .calendar-grid > div { background: white; padding: 10px; text-align: right; min-height: 80px; cursor: pointer; }
+   .day-name { background: #eee; font-weight: bold; text-align: center; }
+   .today { background: #d0eaff; }
     #dailyView { display: none; padding: 1rem; }
     #addEventForm { display: none; margin-top: 1rem; }
     label { display: block; margin-top: 10px; font-weight: bold; }
     input, textarea { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; font-size: 16px; }
     button { margin-top: 10px; padding: 8px 12px; cursor: pointer; font-size: 16px; }
-    #descModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; }
+    #descModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 100; }
     #descModalContent { background: white; padding: 20px; border-radius: 8px; max-width: 400px; width: 90%; position: relative; }
     #menuOptions button:hover { background: #f0f0f0; }
- .date-number { font-weight: bold; }
+   .date-number { font-weight: bold; }
     #loginDiv { padding: 1rem; background: #eee; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     #loginDiv input { padding: 8px; font-size: 16px; flex-grow: 1; min-width: 180px; }
     #loginDiv button { padding: 8px 16px; font-size: 16px; cursor: pointer; }
     #dailyViewTop { display: flex; justify-content: space-between; align-items: center; padding: 0 1rem 1rem 1rem; }
     #dailyViewTop button { padding: 8px 16px; font-size: 16px; cursor: pointer; margin-top: 0; }
- .taskRow {
-    padding: 10px;
-    border-radius: 4px;
-    margin-bottom: 4px;
-    cursor: pointer;
-    color: white;
-    font-weight: 500;
-  }
- .taskRow:hover { opacity: 0.9; }
- .repeat-days-container { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
- .repeat-day-label { display: inline-flex; align-items: center; background: #e0e0e0; padding: 6px 10px; border-radius: 4px; font-weight: normal; font-size: 14px; cursor: pointer; user-select: none; margin-top: 0; }
- .repeat-day-label input { width: auto; margin-right: 5px; margin-top: 0; }
- .repeat-interval-row { display:flex; gap:10px; align-items:center; margin-top: 5px; }
+    #tasksList {
+      position: relative;
+      height: 1440px;
+      background: #fff;
+      border: 1px solid #ddd;
+      overflow-y: auto;
+    }
+   .hour-line {
+      position: absolute;
+      left: 0; right: 0;
+      border-top: 1px solid #eee;
+      height: 60px;
+      pointer-events: none;
+    }
+   .hour-label {
+      position: absolute;
+      left: 4px;
+      top: -8px;
+      font-size: 11px;
+      color: #666;
+      background: #fff;
+      padding: 0 2px;
+    }
+   .event-block {
+      position: absolute;
+      border-radius: 4px;
+      padding: 4px 6px;
+      color: white;
+      font-size: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      box-sizing: border-box;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+   .event-block:hover { opacity: 0.9; }
+   .repeat-days-container { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+   .repeat-day-label { display: inline-flex; align-items: center; background: #e0e0e0; padding: 6px 10px; border-radius: 4px; font-weight: normal; font-size: 14px; cursor: pointer; user-select: none; margin-top: 0; }
+   .repeat-day-label input { width: auto; margin-right: 5px; margin-top: 0; }
+   .repeat-interval-row { display:flex; gap:10px; align-items:center; margin-top: 5px; }
     #repeatInterval { width: 80px; }
+   .time-row { display: flex; gap: 10px; }
+   .time-row > div { flex: 1; }
   </style>
 </head>
 <body>
@@ -77,8 +105,16 @@
     <div id="tasksList"></div>
     <form id="addEventForm">
       <h3 id="formTitle">Add Task</h3>
-      <label>Time:</label>
-      <input type="time" id="eventTime" required />
+      <div class="time-row">
+        <div>
+          <label>Start Time:</label>
+          <input type="time" id="eventStartTime" required />
+        </div>
+        <div>
+          <label>End Time:</label>
+          <input type="time" id="eventEndTime" required />
+        </div>
+      </div>
       <label>Title:</label>
       <input type="text" id="eventTitle" required />
       <label>Color:</label>
@@ -211,13 +247,13 @@
 
   document.getElementById("loginBtn").addEventListener("click", () => {
     signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
-   .catch(e => alert("Login failed: " + e.message));
+  .catch(e => alert("Login failed: " + e.message));
   });
 
   document.getElementById("signupBtn").addEventListener("click", () => {
     createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
-   .then(() => alert("Signup successful. Please login."))
-   .catch(e => alert("Signup failed: " + e.message));
+  .then(() => alert("Signup successful. Please login."))
+  .catch(e => alert("Signup failed: " + e.message));
   });
 
   document.getElementById("logoutBtn").addEventListener("click", () => signOut(auth));
@@ -255,7 +291,8 @@
   const showFormBtn = document.getElementById("showFormBtn");
   const tasksList = document.getElementById("tasksList");
   const addEventForm = document.getElementById("addEventForm");
-  const eventTimeInput = document.getElementById("eventTime");
+  const eventStartTimeInput = document.getElementById("eventStartTime");
+  const eventEndTimeInput = document.getElementById("eventEndTime");
   const eventTitleInput= document.getElementById("eventTitle");
   const eventColorInput = document.getElementById("eventColor");
   const eventDescInput = document.getElementById("eventDesc");
@@ -342,21 +379,79 @@
     const dateStr = formatDate(date);
     const dayEvents = events[dateStr];
 
+    // Draw hour lines 0-23
+    for (let h = 0; h < 24; h++) {
+      const line = document.createElement("div");
+      line.classList.add("hour-line");
+      line.style.top = `${h * 60}px`;
+
+      const label = document.createElement("div");
+      label.classList.add("hour-label");
+      label.textContent = `${h.toString().padStart(2, '0')}:00`;
+      line.appendChild(label);
+
+      tasksList.appendChild(line);
+    }
+
     if (!dayEvents || Object.keys(dayEvents).length === 0) {
-      tasksList.textContent = "No tasks for this day.";
+      tasksList.parentElement.scrollTop = 6 * 60;
       return;
     }
 
-    Object.entries(dayEvents)
-   .sort((a, b) => a[1].time.localeCompare(b[1].time))
-   .forEach(([id, event]) => {
-        const row = document.createElement("div");
-        row.classList.add("taskRow");
-        row.textContent = event.time + " - " + event.title;
-        row.style.background = event.color || "#4285f4";
-        row.addEventListener("click", () => openDescModal(id, event));
-        tasksList.appendChild(row);
+    // Convert events to array with start/end minutes
+    const eventArray = Object.entries(dayEvents).map(([id, event]) => {
+      const [sh, sm] = event.startTime.split(':').map(Number);
+      const [eh, em] = event.endTime.split(':').map(Number);
+      return {
+        id,
+     ...event,
+        start: sh * 60 + sm,
+        end: eh * 60 + em
+      };
+    }).sort((a, b) => a.start - b.start || a.end - b.end);
+
+    // Layout algorithm: assign columns for overlaps
+    const columns = [];
+    eventArray.forEach(event => {
+      let colIndex = 0;
+      while (columns[colIndex] && columns[colIndex] > event.start) {
+        colIndex++;
+      }
+      event.column = colIndex;
+      columns[colIndex] = event.end;
+    });
+
+    // For each event, find how many total columns it overlaps with
+    eventArray.forEach(event => {
+      let maxOverlaps = 1;
+      eventArray.forEach(other => {
+        if (other.start < event.end && other.end > event.start) {
+          maxOverlaps = Math.max(maxOverlaps, other.column + 1);
+        }
       });
+      event.totalColumns = maxOverlaps;
+    });
+
+    // Render blocks
+    eventArray.forEach(event => {
+      const duration = event.end - event.start;
+      const widthPercent = 100 / event.totalColumns;
+      const leftPercent = event.column * widthPercent;
+
+      const block = document.createElement("div");
+      block.classList.add("event-block");
+      block.style.top = `${event.start}px`;
+      block.style.height = `${duration}px`;
+      block.style.left = `calc(60px + ${leftPercent}%)`;
+      block.style.width = `calc(${widthPercent}% - 8px)`;
+      block.style.background = event.color || "#4285f4";
+      block.textContent = `${event.startTime}-${event.endTime} ${event.title}`;
+      block.addEventListener("click", () => openDescModal(event.id, event));
+
+      tasksList.appendChild(block);
+    });
+
+    tasksList.parentElement.scrollTop = 6 * 60;
   }
 
   function openDescModal(id, event) {
@@ -372,7 +467,7 @@
     }
     if (repeatInfo) repeatInfo += ")";
 
-    descTitle.textContent = event.title + " (" + event.time + ")" + repeatInfo;
+    descTitle.textContent = event.title + " (" + event.startTime + " - " + event.endTime + ")" + repeatInfo;
     descText.innerHTML = (event.description || "No description.").replace(/\n/g, '<br>');
     descModal.style.display = "flex";
     editingEventId = id;
@@ -399,7 +494,8 @@
     showFormBtn.style.display = "none";
     addEventForm.style.display = "block";
     formTitle.textContent = event.repeatGroupId? "Edit Recurring Task" : "Edit Task";
-    eventTimeInput.value = event.time;
+    eventStartTimeInput.value = event.startTime;
+    eventEndTimeInput.value = event.endTime;
     eventTitleInput.value = event.title;
     eventColorInput.value = event.color || "#4285f4";
     eventDescInput.value = event.description || "";
@@ -441,7 +537,8 @@
   });
 
   function resetForm() {
-    eventTimeInput.value = "";
+    eventStartTimeInput.value = "";
+    eventEndTimeInput.value = "";
     eventTitleInput.value = "";
     eventColorInput.value = "#4285f4";
     eventDescInput.value = "";
@@ -464,14 +561,20 @@
     e.preventDefault();
     if (!selectedDate) return;
 
-    const time = eventTimeInput.value;
+    const startTime = eventStartTimeInput.value;
+    const endTime = eventEndTimeInput.value;
     const title = eventTitleInput.value;
     const color = eventColorInput.value;
     const description = eventDescInput.value;
     const repeatDays = Array.from(document.querySelectorAll('input[name="repeatDays"]:checked'))
-                        .map(cb => parseInt(cb.value));
+                       .map(cb => parseInt(cb.value));
     const repeatInterval = parseInt(repeatIntervalInput.value) || null;
     const endDateValue = repeatEndDateInput.value;
+
+    if (endTime <= startTime) {
+      alert("End time must be after start time");
+      return;
+    }
 
     if (repeatDays.length > 0 && repeatInterval) {
       alert("Please choose either 'Repeat on Days' OR 'Repeat Every X Days', not both.");
@@ -494,7 +597,7 @@
     if (editingEventId) {
       const dateStr = formatDate(selectedDate);
       const oldEvent = events[dateStr][editingEventId];
-      const changes = { time, title, description, color };
+      const changes = { startTime, endTime, title, description, color };
 
       if (oldEvent?.repeatGroupId) {
         const updateAll = confirm(
@@ -525,7 +628,7 @@
           const dateStr = formatDate(loopDate);
           const id = crypto.randomUUID();
           const taskData = {
-            date: dateStr, time, title, description, color,
+            date: dateStr, startTime, endTime, title, description, color,
             repeatGroupId: groupId, repeatDays, endDate: formatDate(endDate)
           };
           batch.set(doc(tasksCol(), id), taskData);
@@ -545,7 +648,7 @@
         const dateStr = formatDate(loopDate);
         const id = crypto.randomUUID();
         const taskData = {
-          date: dateStr, time, title, description, color,
+          date: dateStr, startTime, endTime, title, description, color,
           repeatGroupId: groupId, repeatInterval, endDate: formatDate(endDate)
         };
         batch.set(doc(tasksCol(), id), taskData);
@@ -558,7 +661,7 @@
     } else {
       const dateStr = formatDate(selectedDate);
       const id = crypto.randomUUID();
-      const taskData = { date: dateStr, time, title, description, color, repeatGroupId: null };
+      const taskData = { date: dateStr, startTime, endTime, title, description, color, repeatGroupId: null };
       await saveTask(id, taskData);
       if (!events[dateStr]) events[dateStr] = {};
       events[dateStr][id] = taskData;
