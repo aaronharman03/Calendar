@@ -20,10 +20,9 @@
     #dailyView {
       display: none;
       padding: 0;
-      position: fixed;
-      top: 68px; left: 0; right: 0; bottom: 0;
+      position: relative;
+      height: calc(100vh - 68px);
       background: #f0f0f0;
-      pointer-events: none;
     }
     label { display: block; margin-top: 10px; font-weight: bold; }
     input, textarea { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; font-size: 16px; }
@@ -32,7 +31,7 @@
 .modalContent { background: white; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%; position: relative; max-height: 90vh; overflow-y: auto; }
     #menuOptions button:hover { background: #f0f0f0; }
 .date-number { font-weight: bold; }
-    #loginDiv { padding: 1rem; background: #eee; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; position: relative; z-index: 30; }
+    #loginDiv { padding: 1rem; background: #eee; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; position: relative; z-index: 50; }
     #loginDiv input { padding: 8px; font-size: 16px; flex-grow: 1; min-width: 180px; }
     #loginDiv button { padding: 8px 16px; font-size: 16px; cursor: pointer; }
     #dailyViewTop {
@@ -151,7 +150,6 @@
             <label>End Time:</label>
             <input type="time" id="eventEndTime" required />
           </div>
-        </div>
         <label>Title:</label>
         <input type="text" id="eventTitle" required />
         <label>Color:</label>
@@ -351,7 +349,6 @@
   function renderCalendar() {
     calendarView.style.display = "block";
     dailyView.style.display = "none";
-    dailyView.style.pointerEvents = "none";
     document.getElementById("prevMonth").style.display = "inline-block";
     document.getElementById("nextMonth").style.display = "inline-block";
 
@@ -406,7 +403,6 @@
   function showDailyView(date) {
     calendarView.style.display = "none";
     dailyView.style.display = "block";
-    dailyView.style.pointerEvents = "auto";
     document.getElementById("prevMonth").style.display = "none";
     document.getElementById("nextMonth").style.display = "none";
     selectedDate = date;
@@ -617,7 +613,7 @@
     const color = eventColorInput.value;
     const description = eventDescInput.value;
     const repeatDays = Array.from(document.querySelectorAll('input[name="repeatDays"]:checked'))
-              .map(cb => parseInt(cb.value));
+            .map(cb => parseInt(cb.value));
     const repeatInterval = parseInt(repeatIntervalInput.value) || null;
     const endDateValue = repeatEndDateInput.value;
 
