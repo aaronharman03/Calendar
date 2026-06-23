@@ -150,6 +150,7 @@
             <label>End Time:</label>
             <input type="time" id="eventEndTime" required />
           </div>
+        </div>
         <label>Title:</label>
         <input type="text" id="eventTitle" required />
         <label>Color:</label>
@@ -613,7 +614,7 @@
     const color = eventColorInput.value;
     const description = eventDescInput.value;
     const repeatDays = Array.from(document.querySelectorAll('input[name="repeatDays"]:checked'))
-          .map(cb => parseInt(cb.value));
+         .map(cb => parseInt(cb.value));
     const repeatInterval = parseInt(repeatIntervalInput.value) || null;
     const endDateValue = repeatEndDateInput.value;
 
