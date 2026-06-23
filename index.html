@@ -125,7 +125,7 @@
     .event-block {
       position: absolute;
       border-radius: 4px;
-      padding: 2px 6px;  /* Fixed: Reduced padding to prevent internal text clipping */
+      padding: 2px 6px;
       color: white;
       font-size: 14px;
       line-height: 1.2;
@@ -134,13 +134,12 @@
       box-sizing: border-box;
       border: 1px solid rgba(0,0,0,0.1);
       min-height: 20px;
-      display: flex;       /* Fixed: Center text vertically for narrow blocks */
+      display: flex;
       align-items: center;
       word-break: break-all;
     }
     .event-block:hover { opacity: 0.9; }
     
-    /* Fixed: Days grid alignment */
     .repeat-days-container { 
       display: grid; 
       grid-template-columns: repeat(5, 1fr); 
@@ -152,7 +151,6 @@
     .repeat-interval-row { display:flex; gap:10px; align-items:center; margin-top: 5px; }
     #repeatInterval { width: 80px; }
     
-    /* Fixed: Time block proportions and margins */
     .time-row { 
       display: flex; 
       justify-content: space-between; 
@@ -510,7 +508,7 @@
     const columns = [];
     eventArray.forEach(event => {
       let colIndex = 0;
-      while (columns[colIndex] && columns[colIndex] > event.start) {
+      while (columns[colIndex] !== undefined && columns[colIndex] > event.start) {
         colIndex++;
       }
       event.column = colIndex;
@@ -518,18 +516,25 @@
     });
 
     eventArray.forEach(event => {
-      let maxOverlaps = 1;
+      let maxCol = event.column;
       eventArray.forEach(other => {
         if (other.start < event.end && other.end > event.start) {
-          maxOverlaps = Math.max(maxOverlaps, other.column + 1);
+          maxCol = Math.max(maxCol, other.column);
         }
       });
-      event.totalColumns = maxOverlaps;
+      event.maxColInGroup = maxCol;
     });
 
     eventArray.forEach(event => {
+      let totalColsInCluster = 1;
+      eventArray.forEach(other => {
+        if (other.start < event.end && other.end > event.start) {
+          totalColsInCluster = Math.max(totalColsInCluster, other.column + 1);
+        }
+      });
+
       const duration = event.end - event.start;
-      const widthPercent = 100 / event.totalColumns;
+      const widthPercent = 100 / totalColsInCluster;
       const leftPercent = event.column * widthPercent;
 
       const block = document.createElement("div");
@@ -541,7 +546,6 @@
       block.style.background = event.color || "#4285f4";
       block.textContent = `${event.startTime}-${event.endTime} ${event.title}`;
       
-      /* Fixed: Scale fonts down dynamically for tight task limits */
       if (duration < 25) {
         block.style.fontSize = "11px";
         block.style.padding = "0px 4px";
