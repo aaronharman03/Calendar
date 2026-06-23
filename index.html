@@ -57,10 +57,10 @@
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
     }
-   .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; }
-   .calendar-grid > div { background: white; padding: 10px; text-align: right; min-height: 80px; cursor: pointer; }
-   .day-name { background: #eee; font-weight: bold; text-align: center; position: sticky; top: 0; z-index: 5; }
-   .today { background: #d0eaff; }
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; }
+  .calendar-grid > div { background: white; padding: 10px; text-align: right; min-height: 80px; cursor: pointer; }
+  .day-name { background: #eee; font-weight: bold; text-align: center; position: sticky; top: 0; z-index: 5; }
+  .today { background: #d0eaff; }
     #dailyView {
       display: none;
       height: 100%;
@@ -68,7 +68,7 @@
       overflow: hidden;
     }
 
-    /* === FORM ALIGNMENT FIXES START === */
+    /* === FORM ALIGNMENT FIXES === */
     #addEventForm {
       display: flex;
       flex-direction: column;
@@ -105,27 +105,23 @@
       touch-action: manipulation;
     }
 
-    /* Aligned: Start/End row now matches Title width exactly */
-   .time-row {
+  .time-row {
       display: flex;
       gap: 12px;
       width: 100%;
     }
-   .time-row > div {
+  .time-row > div {
       flex: 1;
       min-width: 0;
     }
-   .time-row label {
-      margin-top: 0;
-    }
 
-   .repeat-days-container {
+  .repeat-days-container {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       gap: 6px;
       margin-top: 4px;
     }
-   .repeat-day-label {
+  .repeat-day-label {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -138,9 +134,9 @@
       user-select: none;
       margin-top: 0;
     }
-   .repeat-day-label input { width: auto; margin-right: 5px; margin-top: 0; }
+  .repeat-day-label input { width: auto; margin-right: 5px; margin-top: 0; }
 
-   .repeat-interval-row {
+  .repeat-interval-row {
       display: flex;
       gap: 10px;
       align-items: center;
@@ -151,18 +147,18 @@
       flex-shrink: 0;
     }
 
-   .form-buttons {
+  .form-buttons {
       display: flex;
       gap: 10px;
       justify-content: flex-end;
       margin-top: 8px;
     }
-    /* === FORM ALIGNMENT FIXES END === */
+    /* === END FIXES === */
 
-   .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
-   .modalContent { background: white; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%; position: relative; max-height: 90vh; overflow-y: auto; box-sizing: border-box; }
+  .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+  .modalContent { background: white; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%; position: relative; max-height: 90vh; overflow-y: auto; box-sizing: border-box; }
     #menuOptions button:hover { background: #f0f0f0; }
-   .date-number { font-weight: bold; }
+  .date-number { font-weight: bold; }
     #dailyViewTop {
       position: fixed;
       top: 68px; left: 0; right: 0;
@@ -195,14 +191,14 @@
       position: relative;
       height: 1440px;
     }
-   .hour-line {
+  .hour-line {
       position: absolute;
       left: 50px; right: 0;
       border-top: 1px solid #eee;
       height: 60px;
       pointer-events: none;
     }
-   .hour-label {
+  .hour-label {
       position: absolute;
       left: -46px;
       top: -8px;
@@ -211,7 +207,7 @@
       width: 40px;
       text-align: right;
     }
-   .event-block {
+  .event-block {
       position: absolute;
       border-radius: 4px;
       padding: 6px 8px;
@@ -224,7 +220,7 @@
       border: 1px solid rgba(0,0,0,0.1);
       min-height: 20px;
     }
-   .event-block:hover { opacity: 0.9; }
+  .event-block:hover { opacity: 0.9; }
   </style>
 </head>
 <body>
@@ -272,6 +268,7 @@
             <label>End Time:</label>
             <input type="time" id="eventEndTime" required />
           </div>
+        </div>
         <div>
           <label>Title:</label>
           <input type="text" id="eventTitle" required />
@@ -295,7 +292,6 @@
             <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="5">Fri</label>
             <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="6">Sat</label>
           </div>
-        </div>
         <div>
           <label>Or Repeat Every:</label>
           <div class="repeat-interval-row">
@@ -747,7 +743,7 @@
     const color = eventColorInput.value;
     const description = eventDescInput.value;
     const repeatDays = Array.from(document.querySelectorAll('input[name="repeatDays"]:checked'))
-     .map(cb => parseInt(cb.value));
+    .map(cb => parseInt(cb.value));
     const repeatInterval = parseInt(repeatIntervalInput.value) || null;
     const endDateValue = repeatEndDateInput.value;
 
