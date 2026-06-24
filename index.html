@@ -1,6 +1,4 @@
-My bad—using prompt() inside a module script can sometimes throw errors or get blocked by browsers depending on how the modal lifecycle handles focus. Let's ditch the browser's native pop-ups entirely.
-The most reliable way to fix this is to build the choice directly into your calendar's existing HTML/CSS. Instead of a text pop-up, clicking "Delete" will open a clean, tap-friendly sub-menu right inside your custom modal.
-Here is the updated, fully operational code. Replace your entire file with this:
+Here is your complete, fully functional single-file app code containing the built-in deletion panel and the safety fallback fixes. Replace everything inside your file with this version:
 ```html
 <!DOCTYPE html>
 <html lang="en">
@@ -280,6 +278,7 @@ Here is the updated, fully operational code. Replace your entire file with this:
       </div>
       <p id="descText" style="margin-top: 10px;"></p>
       
+      <!-- Inline Deletion UI Panel -->
       <div id="deleteOptions" class="delete-options-box">
         <strong style="color: #c00; font-size: 14px;">Delete Options:</strong>
         <button id="delOnlyThis" style="color: #333;">This occurrence only</button>
@@ -344,6 +343,7 @@ Here is the updated, fully operational code. Replace your entire file with this:
   }
 
   async function deleteSeriesByGroupId(groupId) {
+    if (!groupId) return;
     const q = query(tasksCol(), where("repeatGroupId", "==", groupId));
     const snap = await getDocs(q);
     const batch = writeBatch(db);
@@ -358,8 +358,25 @@ Here is the updated, fully operational code. Replace your entire file with this:
   }
 
   async function deleteFollowingSeries(groupId, startDateStr) {
+    // Safety check: if no groupId exists, treat as single task delete
+    if (!groupId) {
+      if (editingEventId) {
+        await deleteTask(editingEventId);
+        if (events[startDateStr]) delete events[startDateStr][editingEventId];
+      }
+      return;
+    }
+
     const q = query(tasksCol(), where("repeatGroupId", "==", groupId), where("date", ">=", startDateStr));
     const snap = await getDocs(q);
+    
+    // Fallback: if query returns empty, manually wipe the current instance
+    if (snap.empty && editingEventId) {
+      await deleteTask(editingEventId);
+      if (events[startDateStr]) delete events[startDateStr][editingEventId];
+      return;
+    }
+
     const batch = writeBatch(db);
     const deletedIds = new Set();
     
@@ -378,6 +395,7 @@ Here is the updated, fully operational code. Replace your entire file with this:
   }
 
   async function updateSeriesByGroupId(groupId, changes) {
+    if (!groupId) return;
     const q = query(tasksCol(), where("repeatGroupId", "==", groupId));
     const snap = await getDocs(q);
     const batch = writeBatch(db);
@@ -432,7 +450,6 @@ Here is the updated, fully operational code. Replace your entire file with this:
         loopDate.setDate(loopDate.getDate() + repeatInterval);
       }
     } else {
-      // Single task
       const dateStr = formatDate(startDate);
       const id = crypto.randomUUID();
       const taskData = { date: dateStr,...baseData, repeatGroupId: null };
@@ -724,7 +741,6 @@ Here is the updated, fully operational code. Replace your entire file with this:
     });
   });
 
-  // Master delete trigger mechanism
   document.getElementById("deleteBtn").addEventListener("click", async () => {
     if (!editingEventId || !selectedDate) return;
     const dateStr = formatDate(selectedDate);
@@ -732,10 +748,8 @@ Here is the updated, fully operational code. Replace your entire file with this:
     if (!currentEvent) return;
 
     if (currentEvent.repeatGroupId) {
-      // Show custom button layout panel inside the modal
       deleteOptions.style.display = "flex";
     } else {
-      // Immediate database deletion for non-recurring single items
       await deleteTask(editingEventId);
       delete events[dateStr][editingEventId];
       if (Object.keys(events[dateStr]).length === 0) delete events[dateStr];
@@ -743,7 +757,6 @@ Here is the updated, fully operational code. Replace your entire file with this:
     }
   });
 
-  // Action listeners for inline menu selections
   document.getElementById("delOnlyThis").addEventListener("click", async () => {
     if (!editingEventId || !selectedDate) return;
     const dateStr = formatDate(selectedDate);
@@ -757,9 +770,8 @@ Here is the updated, fully operational code. Replace your entire file with this:
     if (!editingEventId || !selectedDate) return;
     const dateStr = formatDate(selectedDate);
     const currentEvent = events[dateStr]?.[editingEventId];
-    if (currentEvent?.repeatGroupId) {
-      await deleteFollowingSeries(currentEvent.repeatGroupId, dateStr);
-    }
+    
+    await deleteFollowingSeries(currentEvent?.repeatGroupId || null, dateStr);
     finalizeDeletionUI();
   });
 
@@ -769,6 +781,10 @@ Here is the updated, fully operational code. Replace your entire file with this:
     const currentEvent = events[dateStr]?.[editingEventId];
     if (currentEvent?.repeatGroupId) {
       await deleteSeriesByGroupId(currentEvent.repeatGroupId);
+    } else {
+      await deleteTask(editingEventId);
+      delete events[dateStr][editingEventId];
+      if (Object.keys(events[dateStr]).length === 0) delete events[dateStr];
     }
     finalizeDeletionUI();
   });
