@@ -323,49 +323,62 @@
     });
   }
 
-  async function deleteThisAndFollowing(groupId, fromDateStr) {
-    console.log("Deleting this and following:", groupId, fromDateStr);
-    const q = query(tasksCol(),
-      where("repeatGroupId", "==", groupId),
-      where("date", ">=", fromDateStr)
-    );
-    const snap = await getDocs(q);
+async function deleteThisAndFollowing(groupId, fromDateStr) {
+  console.log("Deleting this and following:", groupId, fromDateStr);
 
-    const batch = writeBatch(db);
-    snap.forEach(d => batch.delete(d.ref));
+  // Get ALL docs in the series - no composite index needed
+  const q = query(tasksCol(), where("repeatGroupId", "==", groupId));
+  const snap = await getDocs(q);
 
-    // Update endDate for remaining events to be day before fromDateStr
+  const batch = writeBatch(db);
+  let hasRemaining = false;
+
+  // Delete only the ones >= fromDateStr
+  snap.forEach(d => {
+    const data = d.data();
+    if (data.date >= fromDateStr) {
+      batch.delete(d.ref);
+    } else {
+      hasRemaining = true;
+    }
+  });
+
+  // If there are remaining events, update their endDate
+  if (hasRemaining) {
     const prevDay = new Date(fromDateStr + "T00:00:00");
     prevDay.setDate(prevDay.getDate() - 1);
     const newEndDate = formatDate(prevDay);
 
-    const remainingQ = query(tasksCol(),
-      where("repeatGroupId", "==", groupId),
-      where("date", "<", fromDateStr)
-    );
-    const remainingSnap = await getDocs(remainingQ);
-    remainingSnap.forEach(d => batch.update(d.ref, { endDate: newEndDate }));
-
-    await batch.commit();
-
-    // Update local events object
-    Object.keys(events).forEach(dateKey => {
-      if (dateKey >= fromDateStr) {
-        Object.keys(events[dateKey]).forEach(taskKey => {
-          if (events[dateKey][taskKey].repeatGroupId === groupId) {
-            delete events[dateKey][taskKey];
-          }
-        });
-      } else {
-        Object.keys(events[dateKey]).forEach(taskKey => {
-          if (events[dateKey][taskKey].repeatGroupId === groupId) {
-            events[dateKey][taskKey].endDate = newEndDate;
-          }
-        });
+    snap.forEach(d => {
+      const data = d.data();
+      if (data.date < fromDateStr) {
+        batch.update(d.ref, { endDate: newEndDate });
       }
-      if (Object.keys(events[dateKey]).length === 0) delete events[dateKey];
     });
   }
+
+  await batch.commit();
+
+  // Update local events object
+  Object.keys(events).forEach(dateKey => {
+    if (dateKey >= fromDateStr) {
+      Object.keys(events[dateKey]).forEach(taskKey => {
+        if (events[dateKey][taskKey].repeatGroupId === groupId) {
+          delete events[dateKey][taskKey];
+        }
+      });
+    } else {
+      Object.keys(events[dateKey]).forEach(taskKey => {
+        if (events[dateKey][taskKey].repeatGroupId === groupId) {
+          const prevDay = new Date(fromDateStr + "T00:00:00");
+          prevDay.setDate(prevDay.getDate() - 1);
+          events[dateKey][taskKey].endDate = formatDate(prevDay);
+        }
+      });
+    }
+    if (Object.keys(events[dateKey]).length === 0) delete events[dateKey];
+  });
+}
 
   async function updateSeriesByGroupId(groupId, changes) {
     const q = query(tasksCol(), where("repeatGroupId", "==", groupId));
