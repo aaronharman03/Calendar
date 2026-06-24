@@ -1,5 +1,3 @@
-Here is your complete, fully functional single-file app code containing the built-in deletion panel and the safety fallback fixes. Replace everything inside your file with this version:
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -59,10 +57,10 @@ Here is your complete, fully functional single-file app code containing the buil
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
     }
-   .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; }
-   .calendar-grid > div { background: white; padding: 10px; text-align: right; min-height: 80px; cursor: pointer; }
-   .day-name { background: #eee; font-weight: bold; text-align: center; position: sticky; top: 0; z-index: 5; }
-   .today { background: #d0eaff; }
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; }
+  .calendar-grid > div { background: white; padding: 10px; text-align: right; min-height: 80px; cursor: pointer; }
+  .day-name { background: #eee; font-weight: bold; text-align: center; position: sticky; top: 0; z-index: 5; }
+  .today { background: #d0eaff; }
     #dailyView {
       display: none;
       height: 100%;
@@ -72,10 +70,10 @@ Here is your complete, fully functional single-file app code containing the buil
     label { display: block; margin-top: 10px; font-weight: bold; }
     input, textarea { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; font-size: 16px; touch-action: manipulation; }
     button { margin-top: 10px; padding: 8px 12px; cursor: pointer; font-size: 16px; touch-action: manipulation; }
-   .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
-   .modalContent { background: white; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%; position: relative; max-height: 90vh; overflow-y: auto; box-sizing: border-box; }
+  .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+  .modalContent { background: white; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%; position: relative; max-height: 90vh; overflow-y: auto; box-sizing: border-box; }
     #menuOptions button:hover { background: #f0f0f0; }
-   .date-number { font-weight: bold; }
+  .date-number { font-weight: bold; }
     #dailyViewTop {
       position: fixed;
       top: 68px; left: 0; right: 0;
@@ -108,14 +106,14 @@ Here is your complete, fully functional single-file app code containing the buil
       position: relative;
       height: 1440px;
     }
-   .hour-line {
+  .hour-line {
       position: absolute;
       left: 50px; right: 0;
       border-top: 1px solid #eee;
       height: 60px;
       pointer-events: none;
     }
-   .hour-label {
+  .hour-label {
       position: absolute;
       left: -46px;
       top: -8px;
@@ -124,7 +122,7 @@ Here is your complete, fully functional single-file app code containing the buil
       width: 40px;
       text-align: right;
     }
-   .event-block {
+  .event-block {
       position: absolute;
       border-radius: 4px;
       padding: 2px 6px;
@@ -140,30 +138,30 @@ Here is your complete, fully functional single-file app code containing the buil
       align-items: center;
       word-break: break-all;
     }
-   .event-block:hover { opacity: 0.9; }
+  .event-block:hover { opacity: 0.9; }
 
-   .repeat-days-container {
+  .repeat-days-container {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
       gap: 6px;
       margin-top: 5px;
     }
-   .repeat-day-label { display: inline-flex; align-items: center; justify-content: center; background: #e0e0e0; padding: 6px 0; border-radius: 4px; font-weight: normal; font-size: 14px; cursor: pointer; user-select: none; margin-top: 0; }
-   .repeat-day-label input { width: auto; margin-right: 5px; margin-top: 0; }
-   .repeat-interval-row { display:flex; gap:10px; align-items:center; margin-top: 5px; }
+  .repeat-day-label { display: inline-flex; align-items: center; justify-content: center; background: #e0e0e0; padding: 6px 0; border-radius: 4px; font-weight: normal; font-size: 14px; cursor: pointer; user-select: none; margin-top: 0; }
+  .repeat-day-label input { width: auto; margin-right: 5px; margin-top: 0; }
+  .repeat-interval-row { display:flex; gap:10px; align-items:center; margin-top: 5px; }
     #repeatInterval { width: 80px; }
 
-   .time-row {
+  .time-row {
       display: flex;
       justify-content: space-between;
     }
-   .time-row > div {
+  .time-row > div {
       width: calc(50% - 6px);
     }
-   .form-buttons { display: flex; gap: 10px; justify-content: flex-end; }
+  .form-buttons { display: flex; gap: 10px; justify-content: flex-end; }
 
    /* Custom Options UI Box */
-   .delete-options-box {
+  .delete-options-box {
       background: #fff3f3;
       border: 1px solid #f5c2c2;
       border-radius: 6px;
@@ -173,7 +171,7 @@ Here is your complete, fully functional single-file app code containing the buil
       flex-direction: column;
       gap: 8px;
    }
-   .delete-options-box button {
+  .delete-options-box button {
       margin-top: 0;
       text-align: left;
       background: white;
@@ -181,7 +179,7 @@ Here is your complete, fully functional single-file app code containing the buil
       border-radius: 4px;
       padding: 8px 12px;
    }
-   .delete-options-box button:hover {
+  .delete-options-box button:hover {
       background: #fce8e8;
    }
   </style>
@@ -277,7 +275,7 @@ Here is your complete, fully functional single-file app code containing the buil
         </div>
       </div>
       <p id="descText" style="margin-top: 10px;"></p>
-      
+
       <!-- Inline Deletion UI Panel -->
       <div id="deleteOptions" class="delete-options-box">
         <strong style="color: #c00; font-size: 14px;">Delete Options:</strong>
@@ -347,18 +345,24 @@ Here is your complete, fully functional single-file app code containing the buil
     const q = query(tasksCol(), where("repeatGroupId", "==", groupId));
     const snap = await getDocs(q);
     const batch = writeBatch(db);
-    snap.forEach(d => batch.delete(d.ref));
+    const deletedIds = new Set();
+    snap.forEach(d => {
+      batch.delete(d.ref);
+      deletedIds.add(d.id);
+    });
     await batch.commit();
+
+    // Clean up local events cache
     Object.keys(events).forEach(dateKey => {
       Object.keys(events[dateKey]).forEach(taskKey => {
-        if (events[dateKey][taskKey].repeatGroupId === groupId) delete events[dateKey][taskKey];
+        if (deletedIds.has(taskKey)) delete events[dateKey][taskKey];
       });
       if (Object.keys(events[dateKey]).length === 0) delete events[dateKey];
     });
   }
 
   async function deleteFollowingSeries(groupId, startDateStr) {
-    // Safety check: if no groupId exists, treat as single task delete
+    // Safety: if no groupId, just delete the single instance
     if (!groupId) {
       if (editingEventId) {
         await deleteTask(editingEventId);
@@ -367,25 +371,31 @@ Here is your complete, fully functional single-file app code containing the buil
       return;
     }
 
-    const q = query(tasksCol(), where("repeatGroupId", "==", groupId), where("date", ">=", startDateStr));
+    // FIX: Query only by repeatGroupId, then filter dates client-side to avoid needing composite index
+    const q = query(tasksCol(), where("repeatGroupId", "==", groupId));
     const snap = await getDocs(q);
-    
-    // Fallback: if query returns empty, manually wipe the current instance
-    if (snap.empty && editingEventId) {
+
+    const batch = writeBatch(db);
+    const deletedIds = new Set();
+
+    snap.forEach(d => {
+      const data = d.data();
+      if (data.date >= startDateStr) {
+        batch.delete(d.ref);
+        deletedIds.add(d.id);
+      }
+    });
+
+    // Fallback: if nothing matched, at least delete current instance
+    if (deletedIds.size === 0 && editingEventId) {
       await deleteTask(editingEventId);
       if (events[startDateStr]) delete events[startDateStr][editingEventId];
       return;
     }
 
-    const batch = writeBatch(db);
-    const deletedIds = new Set();
-    
-    snap.forEach(d => {
-      batch.delete(d.ref);
-      deletedIds.add(d.id);
-    });
     await batch.commit();
 
+    // Clean up local events cache
     Object.keys(events).forEach(dateKey => {
       Object.keys(events[dateKey]).forEach(taskKey => {
         if (deletedIds.has(taskKey)) delete events[dateKey][taskKey];
@@ -422,7 +432,7 @@ Here is your complete, fully functional single-file app code containing the buil
           const id = crypto.randomUUID();
           const taskData = {
             date: dateStr,
-          ...baseData,
+         ...baseData,
             repeatGroupId: groupId,
             repeatDays,
             endDate: formatDate(endDate)
@@ -439,7 +449,7 @@ Here is your complete, fully functional single-file app code containing the buil
         const id = crypto.randomUUID();
         const taskData = {
           date: dateStr,
-        ...baseData,
+       ...baseData,
           repeatGroupId: groupId,
           repeatInterval,
           endDate: formatDate(endDate)
@@ -625,7 +635,7 @@ Here is your complete, fully functional single-file app code containing the buil
       const [eh, em] = event.endTime.split(':').map(Number);
       return {
         id,
-      ...event,
+     ...event,
         start: sh * 60 + sm,
         end: eh * 60 + em
       };
@@ -703,233 +713,4 @@ Here is your complete, fully functional single-file app code containing the buil
     if (repeatInfo) repeatInfo += ")";
 
     descTitle.textContent = event.title + " (" + event.startTime + " - " + event.endTime + ")" + repeatInfo;
-    descText.innerHTML = (event.description || "No description.").replace(/\n/g, '<br>');
-    deleteOptions.style.display = "none"; 
-    descModal.style.display = "flex";
-    editingEventId = id;
-    menuOptions.style.display = "none";
-  }
-
-  document.getElementById("closeDescModal").addEventListener("click", () => {
-    descModal.style.display = "none";
-    editingEventId = null;
-  });
-
-  document.getElementById("menuBtn").addEventListener("click", e => {
-    e.stopPropagation();
-    menuOptions.style.display = menuOptions.style.display === "block"? "none" : "block";
-  });
-
-  window.addEventListener("click", () => menuOptions.style.display = "none");
-
-  document.getElementById("editBtn").addEventListener("click", () => {
-    if (!editingEventId ||!selectedDate) return;
-    const event = events[formatDate(selectedDate)][editingEventId];
-    if (!event) return;
-    descModal.style.display = "none";
-    formModal.style.display = "flex";
-    formTitle.textContent = event.repeatGroupId? "Edit Recurring Task" : "Edit Task";
-    eventStartTimeInput.value = event.startTime;
-    eventEndTimeInput.value = event.endTime;
-    eventTitleInput.value = event.title;
-    eventColorInput.value = event.color || "#4285f4";
-    eventDescInput.value = event.description || "";
-    repeatIntervalInput.value = event.repeatInterval || "";
-    repeatEndDateInput.value = event.endDate || "";
-    document.querySelectorAll('input[name="repeatDays"]').forEach(cb => {
-      cb.checked = event.repeatDays?.includes(parseInt(cb.value)) || false;
-    });
-  });
-
-  document.getElementById("deleteBtn").addEventListener("click", async () => {
-    if (!editingEventId || !selectedDate) return;
-    const dateStr = formatDate(selectedDate);
-    const currentEvent = events[dateStr]?.[editingEventId];
-    if (!currentEvent) return;
-
-    if (currentEvent.repeatGroupId) {
-      deleteOptions.style.display = "flex";
-    } else {
-      await deleteTask(editingEventId);
-      delete events[dateStr][editingEventId];
-      if (Object.keys(events[dateStr]).length === 0) delete events[dateStr];
-      finalizeDeletionUI();
-    }
-  });
-
-  document.getElementById("delOnlyThis").addEventListener("click", async () => {
-    if (!editingEventId || !selectedDate) return;
-    const dateStr = formatDate(selectedDate);
-    await deleteTask(editingEventId);
-    delete events[dateStr][editingEventId];
-    if (Object.keys(events[dateStr]).length === 0) delete events[dateStr];
-    finalizeDeletionUI();
-  });
-
-  document.getElementById("delFollowing").addEventListener("click", async () => {
-    if (!editingEventId || !selectedDate) return;
-    const dateStr = formatDate(selectedDate);
-    const currentEvent = events[dateStr]?.[editingEventId];
-    
-    await deleteFollowingSeries(currentEvent?.repeatGroupId || null, dateStr);
-    finalizeDeletionUI();
-  });
-
-  document.getElementById("delAllSeries").addEventListener("click", async () => {
-    if (!editingEventId || !selectedDate) return;
-    const dateStr = formatDate(selectedDate);
-    const currentEvent = events[dateStr]?.[editingEventId];
-    if (currentEvent?.repeatGroupId) {
-      await deleteSeriesByGroupId(currentEvent.repeatGroupId);
-    } else {
-      await deleteTask(editingEventId);
-      delete events[dateStr][editingEventId];
-      if (Object.keys(events[dateStr]).length === 0) delete events[dateStr];
-    }
-    finalizeDeletionUI();
-  });
-
-  document.getElementById("delCancel").addEventListener("click", () => {
-    deleteOptions.style.display = "none";
-  });
-
-  function finalizeDeletionUI() {
-    descModal.style.display = "none";
-    deleteOptions.style.display = "none";
-    editingEventId = null;
-    renderCalendar();
-    showDailyView(selectedDate);
-  }
-
-  function resetForm() {
-    eventStartTimeInput.value = "";
-    eventEndTimeInput.value = "";
-    eventTitleInput.value = "";
-    eventColorInput.value = "#4285f4";
-    eventDescInput.value = "";
-    repeatIntervalInput.value = "";
-    repeatEndDateInput.value = "";
-    document.querySelectorAll('input[name="repeatDays"]').forEach(cb => cb.checked = false);
-  }
-
-  backToMonthBtn.addEventListener("click", () => renderCalendar());
-
-  showFormBtn.addEventListener("click", () => {
-    formModal.style.display = "flex";
-    formTitle.textContent = "Add Task";
-    resetForm();
-    editingEventId = null;
-  });
-
-  cancelFormBtn.addEventListener("click", () => {
-    formModal.style.display = "none";
-    editingEventId = null;
-  });
-
-  formModal.addEventListener("click", (e) => {
-    if (e.target === formModal) {
-      formModal.style.display = "none";
-      editingEventId = null;
-    }
-  });
-
-  addEventForm.addEventListener("submit", async e => {
-    e.preventDefault();
-    if (!selectedDate) return;
-
-    const startTime = eventStartTimeInput.value;
-    const endTime = eventEndTimeInput.value;
-    const title = eventTitleInput.value;
-    const color = eventColorInput.value;
-    const description = eventDescInput.value;
-    const repeatDays = Array.from(document.querySelectorAll('input[name="repeatDays"]:checked'))
-    .map(cb => parseInt(cb.value));
-    const repeatInterval = parseInt(repeatIntervalInput.value) || null;
-    const endDateValue = repeatEndDateInput.value;
-
-    if (endTime <= startTime) {
-      alert("End time must be after start time");
-      return;
-    }
-
-    if (repeatDays.length > 0 && repeatInterval) {
-      alert("Please choose either 'Repeat on Days' OR 'Repeat Every X Days', not both.");
-      return;
-    }
-
-    let endDate = new Date(selectedDate);
-    if (endDateValue) {
-      endDate = new Date(endDateValue + "T00:00:00"); 
-    } else {
-      endDate.setFullYear(endDate.getFullYear() + 1);
-    }
-
-    if (formatDate(endDate) < formatDate(selectedDate)) {
-      alert("End date cannot be before the start date.");
-      return;
-    }
-
-    if (editingEventId) {
-      const dateStr = formatDate(selectedDate);
-      const oldEvent = events[dateStr][editingEventId];
-      const baseData = { startTime, endTime, title, description, color };
-
-      if (oldEvent?.repeatGroupId) {
-        const updateAll = confirm(
-          "This is a recurring task.\n\n" +
-          "• OK = update the ENTIRE series with new repeat rules\n" +
-          "• Cancel = update only this occurrence and remove it from series"
-        );
-
-        if (updateAll) {
-          await deleteSeriesByGroupId(oldEvent.repeatGroupId);
-          await createTaskSeries(selectedDate, endDate, repeatDays, repeatInterval, baseData);
-        } else {
-          const updated = {...oldEvent,...baseData, repeatGroupId: null, repeatInterval: null, repeatDays: null, endDate: null };
-          await saveTask(editingEventId, updated);
-          events[dateStr][editingEventId] = updated;
-        }
-
-      } else {
-        if (repeatDays.length > 0 || repeatInterval) {
-          await deleteTask(editingEventId);
-          delete events[dateStr][editingEventId];
-          await createTaskSeries(selectedDate, endDate, repeatDays, repeatInterval, baseData);
-        } else {
-          const updated = {...oldEvent,...baseData };
-          await saveTask(editingEventId, updated);
-          events[dateStr][editingEventId] = updated;
-        }
-      }
-
-    } else {
-      const baseData = { startTime, endTime, title, description, color };
-      await createTaskSeries(selectedDate, endDate, repeatDays, repeatInterval, baseData);
-    }
-
-    formModal.style.display = "none";
-    editingEventId = null;
-    renderCalendar();
-    showDailyView(selectedDate);
-  });
-
-  document.getElementById("prevMonth").addEventListener("click", async () => {
-    currentMonth--;
-    if (currentMonth < 0) { currentMonth = 11; currentYear--; }
-    if (currentUser) await loadMonth(currentYear, currentMonth);
-    renderCalendar();
-  });
-
-  document.getElementById("nextMonth").addEventListener("click", async () => {
-    currentMonth++;
-    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
-    if (currentUser) await loadMonth(currentYear, currentMonth);
-    renderCalendar();
-  });
-
-  renderCalendar();
-</script>
-</body>
-</html>
-
-```
+    descText.innerHTML = (event.description || "No description.").replace(/\n/g
