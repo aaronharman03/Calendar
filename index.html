@@ -1,3 +1,7 @@
+My bad—using prompt() inside a module script can sometimes throw errors or get blocked by browsers depending on how the modal lifecycle handles focus. Let's ditch the browser's native pop-ups entirely.
+The most reliable way to fix this is to build the choice directly into your calendar's existing HTML/CSS. Instead of a text pop-up, clicking "Delete" will open a clean, tap-friendly sub-menu right inside your custom modal.
+Here is the updated, fully operational code. Replace your entire file with this:
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -159,6 +163,29 @@
       width: calc(50% - 6px);
     }
    .form-buttons { display: flex; gap: 10px; justify-content: flex-end; }
+
+   /* Custom Options UI Box */
+   .delete-options-box {
+      background: #fff3f3;
+      border: 1px solid #f5c2c2;
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 15px;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+   }
+   .delete-options-box button {
+      margin-top: 0;
+      text-align: left;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 8px 12px;
+   }
+   .delete-options-box button:hover {
+      background: #fce8e8;
+   }
   </style>
 </head>
 <body>
@@ -252,7 +279,16 @@
         </div>
       </div>
       <p id="descText" style="margin-top: 10px;"></p>
-      <button id="closeDescModal">Close</button>
+      
+      <div id="deleteOptions" class="delete-options-box">
+        <strong style="color: #c00; font-size: 14px;">Delete Options:</strong>
+        <button id="delOnlyThis" style="color: #333;">This occurrence only</button>
+        <button id="delFollowing" style="color: #d9534f;">This and all following occurrences</button>
+        <button id="delAllSeries" style="color: #a94442; font-weight: bold;">The entire series</button>
+        <button id="delCancel" style="border: none; background: transparent; color: #666; text-align: center; margin-top: 4px;">Cancel</button>
+      </div>
+
+      <button id="closeDescModal" style="margin-top: 15px;">Close</button>
     </div>
   </div>
 
@@ -474,6 +510,7 @@
   const descTitle = document.getElementById("descTitle");
   const descText = document.getElementById("descText");
   const menuOptions = document.getElementById("menuOptions");
+  const deleteOptions = document.getElementById("deleteOptions");
 
   function renderCalendar() {
     calendarView.style.display = "block";
@@ -650,6 +687,7 @@
 
     descTitle.textContent = event.title + " (" + event.startTime + " - " + event.endTime + ")" + repeatInfo;
     descText.innerHTML = (event.description || "No description.").replace(/\n/g, '<br>');
+    deleteOptions.style.display = "none"; 
     descModal.style.display = "flex";
     editingEventId = id;
     menuOptions.style.display = "none";
@@ -686,6 +724,7 @@
     });
   });
 
+  // Master delete trigger mechanism
   document.getElementById("deleteBtn").addEventListener("click", async () => {
     if (!editingEventId || !selectedDate) return;
     const dateStr = formatDate(selectedDate);
@@ -693,36 +732,58 @@
     if (!currentEvent) return;
 
     if (currentEvent.repeatGroupId) {
-      const choice = prompt(
-        "This is a recurring task. Type a number to choose:\n\n" +
-        "1. Delete ONLY this occurrence\n" +
-        "2. Delete THIS AND ALL FOLLOWING occurrences\n" +
-        "3. Delete the ENTIRE series\n\n" +
-        "Press Cancel to exit."
-      );
-
-      if (choice === "1") {
-        await deleteTask(editingEventId);
-        delete events[dateStr][editingEventId];
-        if (Object.keys(events[dateStr]).length === 0) delete events[dateStr];
-      } else if (choice === "2") {
-        await deleteFollowingSeries(currentEvent.repeatGroupId, dateStr);
-      } else if (choice === "3") {
-        await deleteSeriesByGroupId(currentEvent.repeatGroupId);
-      } else {
-        return;
-      }
+      // Show custom button layout panel inside the modal
+      deleteOptions.style.display = "flex";
     } else {
+      // Immediate database deletion for non-recurring single items
       await deleteTask(editingEventId);
       delete events[dateStr][editingEventId];
       if (Object.keys(events[dateStr]).length === 0) delete events[dateStr];
+      finalizeDeletionUI();
     }
+  });
 
+  // Action listeners for inline menu selections
+  document.getElementById("delOnlyThis").addEventListener("click", async () => {
+    if (!editingEventId || !selectedDate) return;
+    const dateStr = formatDate(selectedDate);
+    await deleteTask(editingEventId);
+    delete events[dateStr][editingEventId];
+    if (Object.keys(events[dateStr]).length === 0) delete events[dateStr];
+    finalizeDeletionUI();
+  });
+
+  document.getElementById("delFollowing").addEventListener("click", async () => {
+    if (!editingEventId || !selectedDate) return;
+    const dateStr = formatDate(selectedDate);
+    const currentEvent = events[dateStr]?.[editingEventId];
+    if (currentEvent?.repeatGroupId) {
+      await deleteFollowingSeries(currentEvent.repeatGroupId, dateStr);
+    }
+    finalizeDeletionUI();
+  });
+
+  document.getElementById("delAllSeries").addEventListener("click", async () => {
+    if (!editingEventId || !selectedDate) return;
+    const dateStr = formatDate(selectedDate);
+    const currentEvent = events[dateStr]?.[editingEventId];
+    if (currentEvent?.repeatGroupId) {
+      await deleteSeriesByGroupId(currentEvent.repeatGroupId);
+    }
+    finalizeDeletionUI();
+  });
+
+  document.getElementById("delCancel").addEventListener("click", () => {
+    deleteOptions.style.display = "none";
+  });
+
+  function finalizeDeletionUI() {
     descModal.style.display = "none";
+    deleteOptions.style.display = "none";
     editingEventId = null;
     renderCalendar();
     showDailyView(selectedDate);
-  });
+  }
 
   function resetForm() {
     eventStartTimeInput.value = "";
@@ -782,7 +843,7 @@
 
     let endDate = new Date(selectedDate);
     if (endDateValue) {
-      endDate = new Date(endDateValue + "T00:00:00"); // Force local midnight to avoid timezone shift
+      endDate = new Date(endDateValue + "T00:00:00"); 
     } else {
       endDate.setFullYear(endDate.getFullYear() + 1);
     }
@@ -792,7 +853,6 @@
       return;
     }
 
-    // EDIT MODE
     if (editingEventId) {
       const dateStr = formatDate(selectedDate);
       const oldEvent = events[dateStr][editingEventId];
@@ -806,35 +866,26 @@
         );
 
         if (updateAll) {
-          // 1. Delete old series
           await deleteSeriesByGroupId(oldEvent.repeatGroupId);
-
-          // 2. Create new series from current date forward with new rules
           await createTaskSeries(selectedDate, endDate, repeatDays, repeatInterval, baseData);
-
         } else {
-          // Just update this one and detach from series
           const updated = {...oldEvent,...baseData, repeatGroupId: null, repeatInterval: null, repeatDays: null, endDate: null };
           await saveTask(editingEventId, updated);
           events[dateStr][editingEventId] = updated;
         }
 
       } else {
-        // Was a single task. Check if user added repeat rules now
         if (repeatDays.length > 0 || repeatInterval) {
-          // Convert single task to new series
           await deleteTask(editingEventId);
           delete events[dateStr][editingEventId];
           await createTaskSeries(selectedDate, endDate, repeatDays, repeatInterval, baseData);
         } else {
-          // Still a single task, just update fields
           const updated = {...oldEvent,...baseData };
           await saveTask(editingEventId, updated);
           events[dateStr][editingEventId] = updated;
         }
       }
 
-    // CREATE MODE
     } else {
       const baseData = { startTime, endTime, title, description, color };
       await createTaskSeries(selectedDate, endDate, repeatDays, repeatInterval, baseData);
@@ -864,3 +915,5 @@
 </script>
 </body>
 </html>
+
+```
