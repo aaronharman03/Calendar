@@ -309,6 +309,7 @@
   }
 
   async function deleteSeriesByGroupId(groupId) {
+    console.log("Deleting entire series:", groupId);
     const q = query(tasksCol(), where("repeatGroupId", "==", groupId));
     const snap = await getDocs(q);
     const batch = writeBatch(db);
@@ -323,6 +324,7 @@
   }
 
   async function deleteThisAndFollowing(groupId, fromDateStr) {
+    console.log("Deleting this and following:", groupId, fromDateStr);
     const q = query(tasksCol(),
       where("repeatGroupId", "==", groupId),
       where("date", ">=", fromDateStr)
@@ -392,7 +394,7 @@
           const id = crypto.randomUUID();
           const taskData = {
             date: dateStr,
-         ...baseData,
+        ...baseData,
             repeatGroupId: groupId,
             repeatDays,
             endDate: formatDate(endDate)
@@ -409,7 +411,7 @@
         const id = crypto.randomUUID();
         const taskData = {
           date: dateStr,
-       ...baseData,
+      ...baseData,
           repeatGroupId: groupId,
           repeatInterval,
           endDate: formatDate(endDate)
@@ -420,7 +422,6 @@
         loopDate.setDate(loopDate.getDate() + repeatInterval);
       }
     } else {
-      // Single task
       const dateStr = formatDate(startDate);
       const id = crypto.randomUUID();
       const taskData = { date: dateStr,...baseData, repeatGroupId: null };
@@ -430,33 +431,6 @@
     }
 
     await batch.commit();
-  }
-
-  function showDeleteOptions() {
-    return new Promise((resolve) => {
-      const modal = document.createElement("div");
-      modal.className = "modal";
-      modal.style.display = "flex";
-      modal.innerHTML = `
-        <div class="modalContent">
-          <h3>Delete recurring event</h3>
-          <p>This is a recurring event. What would you like to delete?</p>
-          <div class="form-buttons" style="flex-direction:column;align-items:stretch;">
-            <button id="delSingle" class="modal-btn">This event only</button>
-            <button id="delFollowing" class="modal-btn">This and following events</button>
-            <button id="delAll" class="modal-btn" style="color:red;">All events in series</button>
-            <button id="delCancel" class="modal-btn">Cancel</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-
-      modal.querySelector("#delSingle").onclick = () => { modal.remove(); resolve("single"); };
-      modal.querySelector("#delFollowing").onclick = () => { modal.remove(); resolve("following"); };
-      modal.querySelector("#delAll").onclick = () => { modal.remove(); resolve("all"); };
-      modal.querySelector("#delCancel").onclick = () => { modal.remove(); resolve(null); };
-      modal.onclick = (e) => { if(e.target === modal) { modal.remove(); resolve(null); } };
-    });
   }
 
   const loginDiv = document.getElementById("loginDiv");
@@ -622,7 +596,7 @@
       const [eh, em] = event.endTime.split(':').map(Number);
       return {
         id,
-     ...event,
+    ...event,
         start: sh * 60 + sm,
         end: eh * 60 + em
       };
@@ -738,36 +712,60 @@
   });
 
   document.getElementById("deleteBtn").addEventListener("click", async () => {
-    if (!editingEventId ||!selectedDate) return;
+    console.log("Delete clicked. editingEventId:", editingEventId, "selectedDate:", selectedDate);
+    if (!editingEventId ||!selectedDate) {
+      console.log("Bailing: no editingEventId or selectedDate");
+      return;
+    }
     const dateStr = formatDate(selectedDate);
     const currentEvent = events[dateStr]?.[editingEventId];
-    if (!currentEvent) return;
+    console.log("Current event:", currentEvent);
+    if (!currentEvent) {
+      console.log("Bailing: no currentEvent found");
+      return;
+    }
 
-    if (currentEvent.repeatGroupId) {
-      const choice = await showDeleteOptions();
+    try {
+      if (currentEvent.repeatGroupId) {
+        const choice = prompt(
+          "This is a recurring event.\n\n" +
+          "Type 1 = Delete this event only\n" +
+          "Type 2 = Delete this and following events\n" +
+          "Type 3 = Delete all events in series\n\n" +
+          "Or Cancel to abort"
+        );
 
-      if (choice === "single") {
+        console.log("User choice:", choice);
+        if (choice === "1") {
+          await deleteTask(editingEventId);
+          delete events[dateStr][editingEventId];
+          if (Object.keys(events[dateStr]).length === 0) delete events[dateStr];
+        }
+        else if (choice === "2") {
+          await deleteThisAndFollowing(currentEvent.repeatGroupId, dateStr);
+        }
+        else if (choice === "3") {
+          await deleteSeriesByGroupId(currentEvent.repeatGroupId);
+        }
+        else {
+          console.log("Delete cancelled");
+          return;
+        }
+      } else {
+        if (!confirm("Delete this event?")) return;
         await deleteTask(editingEventId);
         delete events[dateStr][editingEventId];
         if (Object.keys(events[dateStr]).length === 0) delete events[dateStr];
       }
-      else if (choice === "following") {
-        await deleteThisAndFollowing(currentEvent.repeatGroupId, dateStr);
-      }
-      else if (choice === "all") {
-        await deleteSeriesByGroupId(currentEvent.repeatGroupId);
-      }
-      else return;
-    } else {
-      await deleteTask(editingEventId);
-      delete events[dateStr][editingEventId];
-      if (Object.keys(events[dateStr]).length === 0) delete events[dateStr];
-    }
 
-    descModal.style.display = "none";
-    editingEventId = null;
-    renderCalendar();
-    showDailyView(selectedDate);
+      descModal.style.display = "none";
+      editingEventId = null;
+      renderCalendar();
+      showDailyView(selectedDate);
+    } catch (err) {
+      console.error("Delete error:", err);
+      alert("Delete failed: " + err.message);
+    }
   });
 
   function resetForm() {
@@ -812,7 +810,7 @@
     const color = eventColorInput.value;
     const description = eventDescInput.value;
     const repeatDays = Array.from(document.querySelectorAll('input[name="repeatDays"]:checked'))
-   .map(cb => parseInt(cb.value));
+  .map(cb => parseInt(cb.value));
     const repeatInterval = parseInt(repeatIntervalInput.value) || null;
     const endDateValue = repeatEndDateInput.value;
 
@@ -838,7 +836,6 @@
       return;
     }
 
-    // EDIT MODE
     if (editingEventId) {
       const dateStr = formatDate(selectedDate);
       const oldEvent = events[dateStr][editingEventId];
@@ -847,40 +844,31 @@
       if (oldEvent?.repeatGroupId) {
         const updateAll = confirm(
           "This is a recurring task.\n\n" +
-          "• OK = update the ENTIRE series with new repeat rules\n" +
-          "• Cancel = update only this occurrence and remove it from series"
+          "OK = update the ENTIRE series with new repeat rules\n" +
+          "Cancel = update only this occurrence and remove it from series"
         );
 
         if (updateAll) {
-          // 1. Delete old series
           await deleteSeriesByGroupId(oldEvent.repeatGroupId);
-
-          // 2. Create new series from current date forward with new rules
           await createTaskSeries(selectedDate, endDate, repeatDays, repeatInterval, baseData);
-
         } else {
-          // Just update this one and detach from series
           const updated = {...oldEvent,...baseData, repeatGroupId: null, repeatInterval: null, repeatDays: null, endDate: null };
           await saveTask(editingEventId, updated);
           events[dateStr][editingEventId] = updated;
         }
 
       } else {
-        // Was a single task. Check if user added repeat rules now
         if (repeatDays.length > 0 || repeatInterval) {
-          // Convert single task to new series
           await deleteTask(editingEventId);
           delete events[dateStr][editingEventId];
           await createTaskSeries(selectedDate, endDate, repeatDays, repeatInterval, baseData);
         } else {
-          // Still a single task, just update fields
           const updated = {...oldEvent,...baseData };
           await saveTask(editingEventId, updated);
           events[dateStr][editingEventId] = updated;
         }
       }
 
-    // CREATE MODE
     } else {
       const baseData = { startTime, endTime, title, description, color };
       await createTaskSeries(selectedDate, endDate, repeatDays, repeatInterval, baseData);
@@ -910,4 +898,3 @@
 </script>
 </body>
 </html>
-        
