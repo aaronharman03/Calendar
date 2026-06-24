@@ -299,7 +299,17 @@
 // NEW: Loads all rule docs, expands them into the calendar in JS
 // FIXED: Backwards compatible with old docs that lack startDate/endDate
 async function loadMonth(year, month) {
-  const snap = await getDocs(tasksCol());
+import { query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+const monthEnd = `${year}-${String(month + 1).padStart(2, '0')}-31`;
+
+const q = query(
+  tasksCol(), 
+  where('endDate', '>=', monthStart),
+  where('startDate', '<=', monthEnd)
+);
+const snap = await getDocs(q);
   events = {};
 
   snap.forEach(docSnap => {
