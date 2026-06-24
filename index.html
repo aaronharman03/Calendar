@@ -297,20 +297,35 @@
   }
 
 // NEW: Loads all rule docs, expands them into the calendar in JS
+// FIXED: Backwards compatible with old docs that lack startDate/endDate
 async function loadMonth(year, month) {
-  const snap = await getDocs(tasksCol()); // Gets all rules. Should be <100 docs now, not 50k
-  events = {}; // Reset
+  const snap = await getDocs(tasksCol());
+  events = {};
 
   snap.forEach(docSnap => {
     const task = docSnap.data();
-    const id = docSnap.id;
+    const ruleId = docSnap.id;
+
+    // MIGRATION: If old doc missing startDate, use 'date' field or skip
+    let taskStart, taskEnd;
+    if (task.startDate && task.endDate) {
+      taskStart = new Date(task.startDate + "T00:00:00");
+      taskEnd = new Date(task.endDate + "T00:00:00");
+    } else if (task.date) {
+      // Old format: single date field
+      taskStart = new Date(task.date + "T00:00:00");
+      taskEnd = new Date(task.date + "T00:00:00");
+      // Auto-upgrade the doc so it works next time
+      task.startDate = task.date;
+      task.endDate = task.date;
+      saveTask(ruleId, task); // fire and forget
+    } else {
+      return; // Can't render this
+    }
 
     const monthStart = new Date(year, month, 1);
     const monthEnd = new Date(year, month + 1, 0);
-    const taskStart = new Date(task.startDate + "T00:00:00");
-    const taskEnd = new Date(task.endDate + "T00:00:00");
 
-    // Only process if the task range overlaps with viewed month
     if (taskEnd < monthStart || taskStart > monthEnd) return;
 
     let loopDate = new Date(Math.max(monthStart, taskStart));
@@ -325,15 +340,13 @@ async function loadMonth(year, month) {
         const diffDays = Math.round((loopDate - taskStart) / (1000 * 60 * 60 * 24));
         shouldAdd = diffDays >= 0 && diffDays % task.repeatInterval === 0;
       } else {
-        // Single event
-        shouldAdd = formatDate(loopDate) === task.startDate;
+        shouldAdd = formatDate(loopDate) === formatDate(taskStart);
       }
 
       if (shouldAdd) {
         const dateStr = formatDate(loopDate);
         if (!events[dateStr]) events[dateStr] = {};
-        // Key = originalId + date so each occurrence is unique in the UI
-        events[dateStr][id + "_" + dateStr] = {...task, date: dateStr, _id: id};
+        events[dateStr][ruleId] = {...task, date: dateStr, _ruleId: ruleId};
       }
 
       loopDate.setDate(loopDate.getDate() + 1);
