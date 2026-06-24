@@ -2,173 +2,44 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <base href="/Calendar/">
   <title>Simple Calendar with Smart Repeats</title>
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      background: #f0f0f0;
-      overflow: hidden;
-      font-family: sans-serif;
-      overscroll-behavior: none;
-      -webkit-overflow-scrolling: touch;
-    }
-    header {
-      background: #007bff;
-      color: white;
-      padding: 1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 20;
-      height: 68px;
-      box-sizing: border-box;
-    }
+    body { font-family: sans-serif; margin: 0; padding: 0; background: #f0f0f0; }
+    header { background: #007bff; color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center; }
     header h1 { margin: 0; font-size: 1.5rem; flex-grow: 1; text-align: center; }
-    #loginDiv {
-      padding: 1rem;
-      background: #eee;
-      position: fixed;
-      top: 68px; left: 0; right: 0;
-      z-index: 19;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-    #loginDiv input { padding: 8px; font-size: 16px; flex-grow: 1; min-width: 180px; touch-action: manipulation; }
-    #loginDiv button { padding: 8px 16px; font-size: 16px; cursor: pointer; touch-action: manipulation; }
-    #appDiv {
-      position: fixed;
-      top: 68px; left: 0; right: 0; bottom: 0;
-      overflow: hidden;
-    }
-    #calendarView {
-      height: 100%;
-      overflow-y: auto;
-      overflow-x: hidden;
-      -webkit-overflow-scrolling: touch;
-    }
   .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ccc; }
   .calendar-grid > div { background: white; padding: 10px; text-align: right; min-height: 80px; cursor: pointer; }
-  .day-name { background: #eee; font-weight: bold; text-align: center; position: sticky; top: 0; z-index: 5; }
+  .day-name { background: #eee; font-weight: bold; text-align: center; }
   .today { background: #d0eaff; }
-    #dailyView {
-      display: none;
-      height: 100%;
-      background: #f0f0f0;
-      overflow: hidden;
-    }
+    #dailyView { display: none; padding: 1rem; }
+    #addEventForm { display: none; margin-top: 1rem; }
     label { display: block; margin-top: 10px; font-weight: bold; }
-    input, textarea { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; font-size: 16px; touch-action: manipulation; }
-    button { margin-top: 10px; padding: 8px 12px; cursor: pointer; font-size: 16px; touch-action: manipulation; }
-  .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
-  .modalContent { background: white; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%; position: relative; max-height: 90vh; overflow-y: auto; box-sizing: border-box; }
+    input, textarea { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; font-size: 16px; }
+    button { margin-top: 10px; padding: 8px 12px; cursor: pointer; font-size: 16px; }
+    #descModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; }
+    #descModalContent { background: white; padding: 20px; border-radius: 8px; max-width: 400px; width: 90%; position: relative; }
     #menuOptions button:hover { background: #f0f0f0; }
   .date-number { font-weight: bold; }
-    #dailyViewTop {
-      position: fixed;
-      top: 68px; left: 0; right: 0;
-      z-index: 15;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem;
-      background: #f0f0f0;
-      border-bottom: 1px solid #ddd;
-      height: 60px;
-      box-sizing: border-box;
-    }
-    #dailyViewTop button {
-      padding: 8px 16px;
-      font-size: 16px;
-      cursor: pointer;
-      margin-top: 0;
-    }
-    #tasksList {
-      position: absolute;
-      top: 60px; bottom: 0; left: 0; right: 0;
-      background: #fff;
-      overflow-y: auto;
-      overflow-x: hidden;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior: contain;
-    }
-    #tasksListInner {
-      position: relative;
-      height: 1440px;
-    }
-  .hour-line {
-      position: absolute;
-      left: 50px; right: 0;
-      border-top: 1px solid #eee;
-      height: 60px;
-      pointer-events: none;
-    }
-  .hour-label {
-      position: absolute;
-      left: -46px;
-      top: -8px;
-      font-size: 11px;
-      color: #666;
-      width: 40px;
-      text-align: right;
-    }
-  .event-block {
-      position: absolute;
-      border-radius: 4px;
-      padding: 2px 6px;
-      color: white;
-      font-size: 14px;
-      line-height: 1.2;
-      overflow: hidden;
-      cursor: pointer;
-      box-sizing: border-box;
-      border: 1px solid rgba(0,0,0,0.1);
-      min-height: 20px;
-      display: flex;
-      align-items: center;
-      word-break: break-all;
-    }
-  .event-block:hover { opacity: 0.9; }
-
-  .repeat-days-container {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 6px;
-      margin-top: 5px;
-    }
-  .repeat-day-label { display: inline-flex; align-items: center; justify-content: center; background: #e0e0e0; padding: 6px 0; border-radius: 4px; font-weight: normal; font-size: 14px; cursor: pointer; user-select: none; margin-top: 0; }
+    #loginDiv { padding: 1rem; background: #eee; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    #loginDiv input { padding: 8px; font-size: 16px; flex-grow: 1; min-width: 180px; }
+    #loginDiv button { padding: 8px 16px; font-size: 16px; cursor: pointer; }
+    #dailyViewTop { display: flex; justify-content: space-between; align-items: center; padding: 0 1rem 1rem 1rem; }
+    #dailyViewTop button { padding: 8px 16px; font-size: 16px; cursor: pointer; margin-top: 0; }
+  .taskRow { padding: 10px; border-bottom: 1px solid #ddd; cursor: pointer; }
+  .repeat-days-container { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+  .repeat-day-label { display: inline-flex; align-items: center; background: #e0e0e0; padding: 6px 10px; border-radius: 4px; font-weight: normal; font-size: 14px; cursor: pointer; user-select: none; margin-top: 0; }
   .repeat-day-label input { width: auto; margin-right: 5px; margin-top: 0; }
   .repeat-interval-row { display:flex; gap:10px; align-items:center; margin-top: 5px; }
     #repeatInterval { width: 80px; }
-
-  .time-row {
-      display: flex;
-      justify-content: space-between;
-    }
-  .time-row > div {
-      width: calc(50% - 6px);
-    }
-  .form-buttons { display: flex; gap: 10px; justify-content: flex-end; }
-  .modal-btn { margin-top: 5px; }
   </style>
 </head>
 <body>
-
-<header>
-  <button id="prevMonth">&lt;</button>
-  <h1 id="monthYear">Month Year</h1>
-  <button id="nextMonth">&gt;</button>
-</header>
 
 <div id="loginDiv">
   <input type="email" id="email" placeholder="Email" />
@@ -180,6 +51,12 @@
 
 <div id="appDiv" style="display:none;">
 
+  <header>
+    <button id="prevMonth">&lt;</button>
+    <h1 id="monthYear">Month Year</h1>
+    <button id="nextMonth">&gt;</button>
+  </header>
+
   <div id="calendarView">
     <div class="calendar-grid" id="calendar"></div>
   </div>
@@ -189,59 +66,39 @@
       <button id="backToMonth">← Back to Month</button>
       <button id="showFormBtn">+ Add Task</button>
     </div>
-    <div id="tasksList">
-      <div id="tasksListInner"></div>
-    </div>
-  </div>
-
-  <div id="formModal" class="modal">
-    <div class="modalContent">
+    <div id="tasksList"></div>
+    <form id="addEventForm">
       <h3 id="formTitle">Add Task</h3>
-      <form id="addEventForm">
-        <div class="time-row">
-          <div>
-            <label>Start Time:</label>
-            <input type="time" id="eventStartTime" required />
-          </div>
-          <div>
-            <label>End Time:</label>
-            <input type="time" id="eventEndTime" required />
-          </div>
-        </div>
-        <label>Title:</label>
-        <input type="text" id="eventTitle" required />
-        <label>Color:</label>
-        <input type="color" id="eventColor" value="#4285f4" />
-        <label>Description:</label>
-        <textarea id="eventDesc" rows="4"></textarea>
-        <label>Repeat on Days:</label>
-        <div class="repeat-days-container">
-          <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="0">Sun</label>
-          <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="1">Mon</label>
-          <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="2">Tue</label>
-          <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="3">Wed</label>
-          <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="4">Thu</label>
-          <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="5">Fri</label>
-          <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="6">Sat</label>
-        </div>
-        <label>Or Repeat Every:</label>
-        <div class="repeat-interval-row">
-          <input type="number" id="repeatInterval" min="1" placeholder="X" />
-          <span>days</span>
-        </div>
-        <label>Repeat End Date (optional):</label>
-        <input type="date" id="repeatEndDate" />
-        <small style="color:#666;">Leave blank for 1 year from start date</small>
-        <div class="form-buttons">
-          <button type="button" id="cancelFormBtn">Cancel</button>
-          <button type="submit">Save</button>
-        </div>
-      </form>
-    </div>
+      <label>Time:</label>
+      <input type="time" id="eventTime" required />
+      <label>Title:</label>
+      <input type="text" id="eventTitle" required />
+      <label>Description:</label>
+      <textarea id="eventDesc" rows="4"></textarea>
+      <label>Repeat on Days:</label>
+      <div class="repeat-days-container">
+        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="0">Sun</label>
+        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="1">Mon</label>
+        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="2">Tue</label>
+        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="3">Wed</label>
+        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="4">Thu</label>
+        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="5">Fri</label>
+        <label class="repeat-day-label"><input type="checkbox" name="repeatDays" value="6">Sat</label>
+      </div>
+      <label>Or Repeat Every:</label>
+      <div class="repeat-interval-row">
+        <input type="number" id="repeatInterval" min="1" placeholder="X" />
+        <span>days</span>
+      </div>
+      <label>Repeat End Date (optional):</label>
+      <input type="date" id="repeatEndDate" />
+      <small style="color:#666;">Leave blank for 1 year from start date</small>
+      <button type="submit">Save</button>
+    </form>
   </div>
 
-  <div id="descModal" class="modal">
-    <div class="modalContent">
+  <div id="descModal">
+    <div id="descModalContent">
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <h3 id="descTitle" style="margin: 0;"></h3>
         <div style="position: relative;">
@@ -322,65 +179,6 @@
     });
   }
 
-  async function deleteThisAndFollowing(groupId, fromDateStr) {
-    const q = query(tasksCol(), where("repeatGroupId", "==", groupId));
-    const snap = await getDocs(q);
-
-    const batch = writeBatch(db);
-    let hasRemaining = false;
-
-    snap.forEach(d => {
-      const data = d.data();
-      if (data.date >= fromDateStr) {
-        batch.delete(d.ref);
-      } else {
-        hasRemaining = true;
-      }
-    });
-
-    if (hasRemaining) {
-      const prevDay = new Date(fromDateStr + "T00:00:00");
-      prevDay.setDate(prevDay.getDate() - 1);
-      const newEndDate = formatDate(prevDay);
-
-      snap.forEach(d => {
-        const data = d.data();
-        if (data.date < fromDateStr) {
-          batch.update(d.ref, { endDate: newEndDate });
-        }
-      });
-    }
-
-    await batch.commit();
-
-    Object.keys(events).forEach(dateKey => {
-      if (dateKey >= fromDateStr) {
-        Object.keys(events[dateKey]).forEach(taskKey => {
-          if (events[dateKey][taskKey].repeatGroupId === groupId) {
-            delete events[dateKey][taskKey];
-          }
-        });
-      } else {
-        Object.keys(events[dateKey]).forEach(taskKey => {
-          if (events[dateKey][taskKey].repeatGroupId === groupId) {
-            const prevDay = new Date(fromDateStr + "T00:00:00");
-            prevDay.setDate(prevDay.getDate() - 1);
-            events[dateKey][taskKey].endDate = formatDate(prevDay);
-          }
-        });
-      }
-      if (Object.keys(events[dateKey]).length === 0) delete events[dateKey];
-    });
-  }
-
-  async function editThisAndFollowing(groupId, fromDateStr, newEndDate, repeatDays, repeatInterval, baseData) {
-    // 1. Delete current + future occurrences
-    await deleteThisAndFollowing(groupId, fromDateStr);
-
-    // 2. Create new series from fromDateStr forward with new data
-    await createTaskSeries(new Date(fromDateStr + "T00:00:00"), new Date(newEndDate + "T00:00:00"), repeatDays, repeatInterval, baseData);
-  }
-
   async function updateSeriesByGroupId(groupId, changes) {
     const q = query(tasksCol(), where("repeatGroupId", "==", groupId));
     const snap = await getDocs(q);
@@ -396,57 +194,6 @@
     });
   }
 
-  async function createTaskSeries(startDate, endDate, repeatDays, repeatInterval, baseData) {
-    const batch = writeBatch(db);
-    const groupId = (repeatDays.length > 0 || repeatInterval)? crypto.randomUUID() : null;
-    const loopDate = new Date(startDate);
-
-    if (repeatDays.length > 0) {
-      while (loopDate <= endDate) {
-        if (repeatDays.includes(loopDate.getDay())) {
-          const dateStr = formatDate(loopDate);
-          const id = crypto.randomUUID();
-          const taskData = {
-            date: dateStr,
-       ...baseData,
-            repeatGroupId: groupId,
-            repeatDays,
-            endDate: formatDate(endDate)
-          };
-          batch.set(doc(tasksCol(), id), taskData);
-          if (!events[dateStr]) events[dateStr] = {};
-          events[dateStr][id] = taskData;
-        }
-        loopDate.setDate(loopDate.getDate() + 1);
-      }
-    } else if (repeatInterval && repeatInterval > 0) {
-      while (loopDate <= endDate) {
-        const dateStr = formatDate(loopDate);
-        const id = crypto.randomUUID();
-        const taskData = {
-          date: dateStr,
-     ...baseData,
-          repeatGroupId: groupId,
-          repeatInterval,
-          endDate: formatDate(endDate)
-        };
-        batch.set(doc(tasksCol(), id), taskData);
-        if (!events[dateStr]) events[dateStr] = {};
-        events[dateStr][id] = taskData;
-        loopDate.setDate(loopDate.getDate() + repeatInterval);
-      }
-    } else {
-      const dateStr = formatDate(startDate);
-      const id = crypto.randomUUID();
-      const taskData = { date: dateStr,...baseData, repeatGroupId: null };
-      batch.set(doc(tasksCol(), id), taskData);
-      if (!events[dateStr]) events[dateStr] = {};
-      events[dateStr][id] = taskData;
-    }
-
-    await batch.commit();
-  }
-
   const loginDiv = document.getElementById("loginDiv");
   const appDiv = document.getElementById("appDiv");
   const emailInput = document.getElementById("email");
@@ -454,13 +201,13 @@
 
   document.getElementById("loginBtn").addEventListener("click", () => {
     signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
-.catch(e => alert("Login failed: " + e.message));
+    .catch(e => alert("Login failed: " + e.message));
   });
 
   document.getElementById("signupBtn").addEventListener("click", () => {
     createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
-.then(() => alert("Signup successful. Please login."))
-.catch(e => alert("Signup failed: " + e.message));
+    .then(() => alert("Signup successful. Please login."))
+    .catch(e => alert("Signup failed: " + e.message));
   });
 
   document.getElementById("logoutBtn").addEventListener("click", () => signOut(auth));
@@ -497,18 +244,13 @@
   const backToMonthBtn = document.getElementById("backToMonth");
   const showFormBtn = document.getElementById("showFormBtn");
   const tasksList = document.getElementById("tasksList");
-  const tasksListInner = document.getElementById("tasksListInner");
-  const formModal = document.getElementById("formModal");
   const addEventForm = document.getElementById("addEventForm");
-  const eventStartTimeInput = document.getElementById("eventStartTime");
-  const eventEndTimeInput = document.getElementById("eventEndTime");
+  const eventTimeInput = document.getElementById("eventTime");
   const eventTitleInput= document.getElementById("eventTitle");
-  const eventColorInput = document.getElementById("eventColor");
   const eventDescInput = document.getElementById("eventDesc");
   const repeatIntervalInput = document.getElementById("repeatInterval");
   const repeatEndDateInput = document.getElementById("repeatEndDate");
   const formTitle = document.getElementById("formTitle");
-  const cancelFormBtn = document.getElementById("cancelFormBtn");
   const descModal = document.getElementById("descModal");
   const descTitle = document.getElementById("descTitle");
   const descText = document.getElementById("descText");
@@ -544,12 +286,12 @@
 
       if (isToday(date)) dayDiv.classList.add("today");
 
-      if (events[dateStr] && Object.keys(events[dateStr]).length > 0) {
-        const dot = document.createElement("span");
-        const dotColor = isToday(date)? "#28a745" : "#007bff";
-        dot.style.cssText = `background:${dotColor};border-radius:50%;width:8px;height:8px;display:inline-block;margin-left:5px;vertical-align:middle;`;
-        dayDiv.appendChild(dot);
-      }
+  if (events[dateStr] && Object.keys(events[dateStr]).length > 0) {
+  const dot = document.createElement("span");
+  const dotColor = isToday(date)? "#28a745" : "#007bff"; // green for today, blue for others
+  dot.style.cssText = `background:${dotColor};border-radius:50%;width:8px;height:8px;display:inline-block;margin-left:5px;vertical-align:middle;`;
+  dayDiv.appendChild(dot);
+}
 
       dayDiv.addEventListener("click", () => showDailyView(date));
       calendarEl.appendChild(dayDiv);
@@ -579,99 +321,30 @@
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
 
+    showFormBtn.style.display = "inline-block";
+    addEventForm.style.display = "none";
     renderTasksForDate(date);
   }
 
   function renderTasksForDate(date) {
-    tasksListInner.innerHTML = "";
+    tasksList.innerHTML = "";
     const dateStr = formatDate(date);
     const dayEvents = events[dateStr];
 
-    for (let h = 0; h < 24; h++) {
-      const line = document.createElement("div");
-      line.classList.add("hour-line");
-      line.style.top = `${h * 60}px`;
-
-      const label = document.createElement("div");
-      label.classList.add("hour-label");
-      label.textContent = `${h.toString().padStart(2, '0')}:00`;
-      line.appendChild(label);
-
-      tasksListInner.appendChild(line);
-    }
-
     if (!dayEvents || Object.keys(dayEvents).length === 0) {
-      tasksList.scrollTop = 6 * 60;
+      tasksList.textContent = "No tasks for this day.";
       return;
     }
 
-    const eventArray = Object.entries(dayEvents).map(([id, event]) => {
-      const [sh, sm] = event.startTime.split(':').map(Number);
-      const [eh, em] = event.endTime.split(':').map(Number);
-      return {
-        id,
-   ...event,
-        start: sh * 60 + sm,
-        end: eh * 60 + em
-      };
-    }).sort((a, b) => a.start - b.start || a.end - b.end);
-
-    const columns = [];
-    eventArray.forEach(event => {
-      let colIndex = 0;
-      while (columns[colIndex]!== undefined && columns[colIndex] > event.start) {
-        colIndex++;
-      }
-      event.column = colIndex;
-      columns[colIndex] = event.end;
-    });
-
-    eventArray.forEach(event => {
-      let maxCol = event.column;
-      eventArray.forEach(other => {
-        if (other.start < event.end && other.end > event.start) {
-          maxCol = Math.max(maxCol, other.column);
-        }
+    Object.entries(dayEvents)
+    .sort((a, b) => a[1].time.localeCompare(b[1].time))
+    .forEach(([id, event]) => {
+        const row = document.createElement("div");
+        row.classList.add("taskRow");
+        row.textContent = event.time + " - " + event.title;
+        row.addEventListener("click", () => openDescModal(id, event));
+        tasksList.appendChild(row);
       });
-      event.maxColInGroup = maxCol;
-    });
-
-    eventArray.forEach(event => {
-      let totalColsInCluster = 1;
-      eventArray.forEach(other => {
-        if (other.start < event.end && other.end > event.start) {
-          totalColsInCluster = Math.max(totalColsInCluster, other.column + 1);
-        }
-      });
-
-      const duration = event.end - event.start;
-      const widthPercent = 100 / totalColsInCluster;
-      const leftPercent = event.column * widthPercent;
-
-      const block = document.createElement("div");
-      block.classList.add("event-block");
-
-      block.style.top = `${event.start + 1}px`;
-      block.style.height = `${Math.max(15, duration - 1)}px`;
-
-      block.style.left = `calc(50px + ${leftPercent}%)`;
-      block.style.width = `calc(${widthPercent}% - 8px)`;
-      block.style.background = event.color || "#4285f4";
-      block.textContent = `${event.startTime}-${event.endTime} ${event.title}`;
-
-      if (duration < 25) {
-        block.style.fontSize = "11px";
-        block.style.padding = "0px 4px";
-      } else if (duration < 40) {
-        block.style.fontSize = "12px";
-      }
-
-      block.addEventListener("click", () => openDescModal(event.id, event));
-
-      tasksListInner.appendChild(block);
-    });
-
-    tasksList.scrollTop = 6 * 60;
   }
 
   function openDescModal(id, event) {
@@ -687,7 +360,7 @@
     }
     if (repeatInfo) repeatInfo += ")";
 
-    descTitle.textContent = event.title + " (" + event.startTime + " - " + event.endTime + ")" + repeatInfo;
+    descTitle.textContent = event.title + " (" + event.time + ")" + repeatInfo;
     descText.innerHTML = (event.description || "No description.").replace(/\n/g, '<br>');
     descModal.style.display = "flex";
     editingEventId = id;
@@ -711,12 +384,11 @@
     const event = events[formatDate(selectedDate)][editingEventId];
     if (!event) return;
     descModal.style.display = "none";
-    formModal.style.display = "flex";
+    showFormBtn.style.display = "none";
+    addEventForm.style.display = "block";
     formTitle.textContent = event.repeatGroupId? "Edit Recurring Task" : "Edit Task";
-    eventStartTimeInput.value = event.startTime;
-    eventEndTimeInput.value = event.endTime;
+    eventTimeInput.value = event.time;
     eventTitleInput.value = event.title;
-    eventColorInput.value = event.color || "#4285f4";
     eventDescInput.value = event.description || "";
     repeatIntervalInput.value = event.repeatInterval || "";
     repeatEndDateInput.value = event.endDate || "";
@@ -731,50 +403,33 @@
     const currentEvent = events[dateStr]?.[editingEventId];
     if (!currentEvent) return;
 
-    try {
-      if (currentEvent.repeatGroupId) {
-        const choice = prompt(
-          "This is a recurring event.\n\n" +
-          "Type 1 = Delete this event only\n" +
-          "Type 2 = Delete this and following events\n" +
-          "Type 3 = Delete all events in series\n\n" +
-          "Or Cancel to abort"
-        );
-
-        if (choice === "1") {
-          await deleteTask(editingEventId);
-          delete events[dateStr][editingEventId];
-          if (Object.keys(events[dateStr]).length === 0) delete events[dateStr];
-        }
-        else if (choice === "2") {
-          await deleteThisAndFollowing(currentEvent.repeatGroupId, dateStr);
-        }
-        else if (choice === "3") {
-          await deleteSeriesByGroupId(currentEvent.repeatGroupId);
-        }
-        else return;
+    if (currentEvent.repeatGroupId) {
+      const deleteAll = confirm(
+        "This is a recurring task.\n\n" +
+        "• OK = delete the ENTIRE series\n" +
+        "• Cancel = delete only this occurrence"
+      );
+      if (deleteAll) {
+        await deleteSeriesByGroupId(currentEvent.repeatGroupId);
       } else {
-        if (!confirm("Delete this event?")) return;
         await deleteTask(editingEventId);
         delete events[dateStr][editingEventId];
         if (Object.keys(events[dateStr]).length === 0) delete events[dateStr];
       }
-
-      descModal.style.display = "none";
-      editingEventId = null;
-      renderCalendar();
-      showDailyView(selectedDate);
-    } catch (err) {
-      console.error("Delete error:", err);
-      alert("Delete failed: " + err.message);
+    } else {
+      await deleteTask(editingEventId);
+      delete events[dateStr][editingEventId];
+      if (Object.keys(events[dateStr]).length === 0) delete events[dateStr];
     }
+
+    descModal.style.display = "none";
+    editingEventId = null;
+    renderCalendar();
   });
 
   function resetForm() {
-    eventStartTimeInput.value = "";
-    eventEndTimeInput.value = "";
+    eventTimeInput.value = "";
     eventTitleInput.value = "";
-    eventColorInput.value = "#4285f4";
     eventDescInput.value = "";
     repeatIntervalInput.value = "";
     repeatEndDateInput.value = "";
@@ -784,42 +439,24 @@
   backToMonthBtn.addEventListener("click", () => renderCalendar());
 
   showFormBtn.addEventListener("click", () => {
-    formModal.style.display = "flex";
+    addEventForm.style.display = "block";
+    showFormBtn.style.display = "none";
     formTitle.textContent = "Add Task";
     resetForm();
     editingEventId = null;
-  });
-
-  cancelFormBtn.addEventListener("click", () => {
-    formModal.style.display = "none";
-    editingEventId = null;
-  });
-
-  formModal.addEventListener("click", (e) => {
-    if (e.target === formModal) {
-      formModal.style.display = "none";
-      editingEventId = null;
-    }
   });
 
   addEventForm.addEventListener("submit", async e => {
     e.preventDefault();
     if (!selectedDate) return;
 
-    const startTime = eventStartTimeInput.value;
-    const endTime = eventEndTimeInput.value;
+    const time = eventTimeInput.value;
     const title = eventTitleInput.value;
-    const color = eventColorInput.value;
     const description = eventDescInput.value;
     const repeatDays = Array.from(document.querySelectorAll('input[name="repeatDays"]:checked'))
-.map(cb => parseInt(cb.value));
+                         .map(cb => parseInt(cb.value));
     const repeatInterval = parseInt(repeatIntervalInput.value) || null;
     const endDateValue = repeatEndDateInput.value;
-
-    if (endTime <= startTime) {
-      alert("End time must be after start time");
-      return;
-    }
 
     if (repeatDays.length > 0 && repeatInterval) {
       alert("Please choose either 'Repeat on Days' OR 'Repeat Every X Days', not both.");
@@ -828,7 +465,8 @@
 
     let endDate = new Date(selectedDate);
     if (endDateValue) {
-      endDate = new Date(endDateValue + "T00:00:00");
+      endDate = new Date(endDateValue);
+      endDate.setMinutes(endDate.getMinutes() + endDate.getTimezoneOffset());
     } else {
       endDate.setFullYear(endDate.getFullYear() + 1);
     }
@@ -838,66 +476,83 @@
       return;
     }
 
-    const baseData = { startTime, endTime, title, description, color };
+    if (editingEventId) {
+      const dateStr = formatDate(selectedDate);
+      const oldEvent = events[dateStr][editingEventId];
+      const changes = { time, title, description };
 
-    try {
-      // EDIT MODE
-      if (editingEventId) {
-        const dateStr = formatDate(selectedDate);
-        const oldEvent = events[dateStr][editingEventId];
-
-        if (oldEvent?.repeatGroupId) {
-          const choice = prompt(
-            "This is a recurring task.\n\n" +
-            "Type 1 = Update this event only\n" +
-            "Type 2 = Update this and following events\n" +
-            "Type 3 = Update entire series\n\n" +
-            "Or Cancel to abort"
-          );
-
-          if (choice === "1") {
-            // Just update this one and detach from series
-            const updated = {...oldEvent,...baseData, repeatGroupId: null, repeatInterval: null, repeatDays: null, endDate: null };
-            await saveTask(editingEventId, updated);
-            events[dateStr][editingEventId] = updated;
-          }
-          else if (choice === "2") {
-            // Edit this and following: delete future, create new series from here
-            await editThisAndFollowing(oldEvent.repeatGroupId, dateStr, formatDate(endDate), repeatDays, repeatInterval, baseData);
-          }
-          else if (choice === "3") {
-            // Update entire series: delete old series, create new one from start
-            await deleteSeriesByGroupId(oldEvent.repeatGroupId);
-            await createTaskSeries(selectedDate, endDate, repeatDays, repeatInterval, baseData);
-          }
-          else return;
-
+      if (oldEvent?.repeatGroupId) {
+        const updateAll = confirm(
+          "This is a recurring task.\n\n" +
+          "• OK = update the ENTIRE series\n" +
+          "• Cancel = update only this occurrence"
+        );
+        if (updateAll) {
+          await updateSeriesByGroupId(oldEvent.repeatGroupId, changes);
         } else {
-          // Was a single task. Check if user added repeat rules now
-          if (repeatDays.length > 0 || repeatInterval) {
-            await deleteTask(editingEventId);
-            delete events[dateStr][editingEventId];
-            await createTaskSeries(selectedDate, endDate, repeatDays, repeatInterval, baseData);
-          } else {
-            const updated = {...oldEvent,...baseData };
-            await saveTask(editingEventId, updated);
-            events[dateStr][editingEventId] = updated;
-          }
+          const updated = {...oldEvent,...changes, repeatGroupId: null, repeatInterval: null, repeatDays: null, endDate: null };
+          await saveTask(editingEventId, updated);
+          events[dateStr][editingEventId] = updated;
         }
-
-      // CREATE MODE
       } else {
-        await createTaskSeries(selectedDate, endDate, repeatDays, repeatInterval, baseData);
+        const updated = {...oldEvent,...changes };
+        await saveTask(editingEventId, updated);
+        events[dateStr][editingEventId] = updated;
       }
 
-      formModal.style.display = "none";
-      editingEventId = null;
-      renderCalendar();
-      showDailyView(selectedDate);
-    } catch (err) {
-      console.error("Save error:", err);
-      alert("Save failed: " + err.message);
+    } else if (repeatDays.length > 0) {
+      const groupId = crypto.randomUUID();
+      const loopDate = new Date(selectedDate);
+      const batch = writeBatch(db);
+
+      while (loopDate <= endDate) {
+        if (repeatDays.includes(loopDate.getDay())) {
+          const dateStr = formatDate(loopDate);
+          const id = crypto.randomUUID();
+          const taskData = {
+            date: dateStr, time, title, description,
+            repeatGroupId: groupId, repeatDays, endDate: formatDate(endDate)
+          };
+          batch.set(doc(tasksCol(), id), taskData);
+          if (!events[dateStr]) events[dateStr] = {};
+          events[dateStr][id] = taskData;
+        }
+        loopDate.setDate(loopDate.getDate() + 1);
+      }
+      await batch.commit();
+
+    } else if (repeatInterval && repeatInterval > 0) {
+      const groupId = crypto.randomUUID();
+      const loopDate = new Date(selectedDate);
+      const batch = writeBatch(db);
+
+      while (loopDate <= endDate) {
+        const dateStr = formatDate(loopDate);
+        const id = crypto.randomUUID();
+        const taskData = {
+          date: dateStr, time, title, description,
+          repeatGroupId: groupId, repeatInterval, endDate: formatDate(endDate)
+        };
+        batch.set(doc(tasksCol(), id), taskData);
+        if (!events[dateStr]) events[dateStr] = {};
+        events[dateStr][id] = taskData;
+        loopDate.setDate(loopDate.getDate() + repeatInterval);
+      }
+      await batch.commit();
+
+    } else {
+      const dateStr = formatDate(selectedDate);
+      const id = crypto.randomUUID();
+      const taskData = { date: dateStr, time, title, description, repeatGroupId: null };
+      await saveTask(id, taskData);
+      if (!events[dateStr]) events[dateStr] = {};
+      events[dateStr][id] = taskData;
     }
+
+    addEventForm.style.display = "none";
+    showFormBtn.style.display = "inline-block";
+    renderCalendar();
+    showDailyView(selectedDate);
   });
 
   document.getElementById("prevMonth").addEventListener("click", async () => {
@@ -918,3 +573,4 @@
 </script>
 </body>
 </html>
+
