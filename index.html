@@ -282,8 +282,6 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-  import { enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
-enableIndexedDbPersistence(db).catch(() => {});
   const auth = getAuth(app);
 
   function tasksCol() {
@@ -298,75 +296,20 @@ enableIndexedDbPersistence(db).catch(() => {});
     await deleteDoc(doc(tasksCol(), id));
   }
 
-// NEW: Loads all rule docs, expands them into the calendar in JS
-// FIXED: Backwards compatible with old docs that lack startDate/endDate
-async function loadMonth(year, month) {
-import { query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
-
-const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-const monthEnd = `${year}-${String(month + 1).padStart(2, '0')}-31`;
-
-const q = query(
-  tasksCol(), 
-  where('endDate', '>=', monthStart),
-  where('startDate', '<=', monthEnd)
-);
-const snap = await getDocs(q);
-  events = {};
-
-  snap.forEach(docSnap => {
-    const task = docSnap.data();
-    const ruleId = docSnap.id;
-
-    // MIGRATION: If old doc missing startDate, use 'date' field or skip
-    let taskStart, taskEnd;
-    if (task.startDate && task.endDate) {
-      taskStart = new Date(task.startDate + "T00:00:00");
-      taskEnd = new Date(task.endDate + "T00:00:00");
-    } else if (task.date) {
-      // Old format: single date field
-      taskStart = new Date(task.date + "T00:00:00");
-      taskEnd = new Date(task.date + "T00:00:00");
-      // Auto-upgrade the doc so it works next time
-      task.startDate = task.date;
-      task.endDate = task.date;
-      saveTask(ruleId, task); // fire and forget
-    } else {
-      return; // Can't render this
-    }
-
-    const monthStart = new Date(year, month, 1);
-    const monthEnd = new Date(year, month + 1, 0);
-
-    if (taskEnd < monthStart || taskStart > monthEnd) return;
-
-    let loopDate = new Date(Math.max(monthStart, taskStart));
-    const finalDate = new Date(Math.min(monthEnd, taskEnd));
-
-    while (loopDate <= finalDate) {
-      let shouldAdd = false;
-
-      if (task.repeatDays && task.repeatDays.length > 0) {
-        shouldAdd = task.repeatDays.includes(loopDate.getDay());
-      } else if (task.repeatInterval) {
-        const diffDays = Math.round((loopDate - taskStart) / (1000 * 60 * 60 * 24));
-        shouldAdd = diffDays >= 0 && diffDays % task.repeatInterval === 0;
-      } else {
-        shouldAdd = formatDate(loopDate) === formatDate(taskStart);
-      }
-
-      if (shouldAdd) {
-        const dateStr = formatDate(loopDate);
-        if (!events[dateStr]) events[dateStr] = {};
-        events[dateStr][ruleId] = {...task, date: dateStr, _ruleId: ruleId};
-      }
-
-      loopDate.setDate(loopDate.getDate() + 1);
-    }
-  });
-}
+  async function loadMonth(year, month) {
+    const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+    const q = query(tasksCol(), where("date", ">=", prefix + "-01"), where("date", "<=", prefix + "-31"));
+    const snap = await getDocs(q);
+    Object.keys(events).forEach(d => { if (d.startsWith(prefix)) delete events[d]; });
+    snap.forEach(docSnap => {
+      const task = docSnap.data();
+      if (!events[task.date]) events[task.date] = {};
+      events[task.date][docSnap.id] = task;
+    });
+  }
 
   async function deleteSeriesByGroupId(groupId) {
+    console.log("Deleting entire series:", groupId);
     const q = query(tasksCol(), where("repeatGroupId", "==", groupId));
     const snap = await getDocs(q);
     const batch = writeBatch(db);
@@ -381,63 +324,61 @@ const snap = await getDocs(q);
   }
 
   async function deleteThisAndFollowing(groupId, fromDateStr) {
-    const q = query(tasksCol(), where("repeatGroupId", "==", groupId));
-    const snap = await getDocs(q);
+  console.log("Deleting this and following:", groupId, fromDateStr);
 
-    const batch = writeBatch(db);
-    let hasRemaining = false;
+  // Get ALL docs in the series - no composite index needed
+  const q = query(tasksCol(), where("repeatGroupId", "==", groupId));
+  const snap = await getDocs(q);
+
+  const batch = writeBatch(db);
+  let hasRemaining = false;
+
+  // Delete only the ones >= fromDateStr
+  snap.forEach(d => {
+    const data = d.data();
+    if (data.date >= fromDateStr) {
+      batch.delete(d.ref);
+    } else {
+      hasRemaining = true;
+    }
+  });
+
+  // If there are remaining events, update their endDate
+  if (hasRemaining) {
+    const prevDay = new Date(fromDateStr + "T00:00:00");
+    prevDay.setDate(prevDay.getDate() - 1);
+    const newEndDate = formatDate(prevDay);
 
     snap.forEach(d => {
       const data = d.data();
-      if (data.date >= fromDateStr) {
-        batch.delete(d.ref);
-      } else {
-        hasRemaining = true;
+      if (data.date < fromDateStr) {
+        batch.update(d.ref, { endDate: newEndDate });
       }
     });
+  }
 
-    if (hasRemaining) {
-      const prevDay = new Date(fromDateStr + "T00:00:00");
-      prevDay.setDate(prevDay.getDate() - 1);
-      const newEndDate = formatDate(prevDay);
+  await batch.commit();
 
-      snap.forEach(d => {
-        const data = d.data();
-        if (data.date < fromDateStr) {
-          batch.update(d.ref, { endDate: newEndDate });
+  // Update local events object
+  Object.keys(events).forEach(dateKey => {
+    if (dateKey >= fromDateStr) {
+      Object.keys(events[dateKey]).forEach(taskKey => {
+        if (events[dateKey][taskKey].repeatGroupId === groupId) {
+          delete events[dateKey][taskKey];
+        }
+      });
+    } else {
+      Object.keys(events[dateKey]).forEach(taskKey => {
+        if (events[dateKey][taskKey].repeatGroupId === groupId) {
+          const prevDay = new Date(fromDateStr + "T00:00:00");
+          prevDay.setDate(prevDay.getDate() - 1);
+          events[dateKey][taskKey].endDate = formatDate(prevDay);
         }
       });
     }
-
-    await batch.commit();
-
-    Object.keys(events).forEach(dateKey => {
-      if (dateKey >= fromDateStr) {
-        Object.keys(events[dateKey]).forEach(taskKey => {
-          if (events[dateKey][taskKey].repeatGroupId === groupId) {
-            delete events[dateKey][taskKey];
-          }
-        });
-      } else {
-        Object.keys(events[dateKey]).forEach(taskKey => {
-          if (events[dateKey][taskKey].repeatGroupId === groupId) {
-            const prevDay = new Date(fromDateStr + "T00:00:00");
-            prevDay.setDate(prevDay.getDate() - 1);
-            events[dateKey][taskKey].endDate = formatDate(prevDay);
-          }
-        });
-      }
-      if (Object.keys(events[dateKey]).length === 0) delete events[dateKey];
-    });
-  }
-
-  async function editThisAndFollowing(groupId, fromDateStr, newEndDate, repeatDays, repeatInterval, baseData) {
-    // 1. Delete current + future occurrences
-    await deleteThisAndFollowing(groupId, fromDateStr);
-
-    // 2. Create new series from fromDateStr forward with new data
-    await createTaskSeries(new Date(fromDateStr + "T00:00:00"), new Date(newEndDate + "T00:00:00"), repeatDays, repeatInterval, baseData);
-  }
+    if (Object.keys(events[dateKey]).length === 0) delete events[dateKey];
+  });
+}
 
   async function updateSeriesByGroupId(groupId, changes) {
     const q = query(tasksCol(), where("repeatGroupId", "==", groupId));
@@ -454,27 +395,56 @@ const snap = await getDocs(q);
     });
   }
 
-// NEW: Creates only 1 doc per event/repeat rule
-async function createTaskSeries(startDate, endDate, repeatDays, repeatInterval, baseData) {
-  const id = crypto.randomUUID();
-  const isRepeating = repeatDays.length > 0 || repeatInterval;
+  async function createTaskSeries(startDate, endDate, repeatDays, repeatInterval, baseData) {
+    const batch = writeBatch(db);
+    const groupId = (repeatDays.length > 0 || repeatInterval)? crypto.randomUUID() : null;
+    const loopDate = new Date(startDate);
 
-  const taskData = {
-  ...baseData,
-    startDate: formatDate(startDate),
-    endDate: formatDate(endDate),
-    repeatDays: repeatDays.length > 0? repeatDays : null,
-    repeatInterval: repeatInterval || null,
-    repeatGroupId: isRepeating? crypto.randomUUID() : null
-  };
+    if (repeatDays.length > 0) {
+      while (loopDate <= endDate) {
+        if (repeatDays.includes(loopDate.getDay())) {
+          const dateStr = formatDate(loopDate);
+          const id = crypto.randomUUID();
+          const taskData = {
+            date: dateStr,
+        ...baseData,
+            repeatGroupId: groupId,
+            repeatDays,
+            endDate: formatDate(endDate)
+          };
+          batch.set(doc(tasksCol(), id), taskData);
+          if (!events[dateStr]) events[dateStr] = {};
+          events[dateStr][id] = taskData;
+        }
+        loopDate.setDate(loopDate.getDate() + 1);
+      }
+    } else if (repeatInterval && repeatInterval > 0) {
+      while (loopDate <= endDate) {
+        const dateStr = formatDate(loopDate);
+        const id = crypto.randomUUID();
+        const taskData = {
+          date: dateStr,
+      ...baseData,
+          repeatGroupId: groupId,
+          repeatInterval,
+          endDate: formatDate(endDate)
+        };
+        batch.set(doc(tasksCol(), id), taskData);
+        if (!events[dateStr]) events[dateStr] = {};
+        events[dateStr][id] = taskData;
+        loopDate.setDate(loopDate.getDate() + repeatInterval);
+      }
+    } else {
+      const dateStr = formatDate(startDate);
+      const id = crypto.randomUUID();
+      const taskData = { date: dateStr,...baseData, repeatGroupId: null };
+      batch.set(doc(tasksCol(), id), taskData);
+      if (!events[dateStr]) events[dateStr] = {};
+      events[dateStr][id] = taskData;
+    }
 
-  await setDoc(doc(tasksCol(), id), taskData);
-
-  // Refresh UI for current month
-  await loadMonth(currentYear, currentMonth);
-  renderCalendar();
-  showDailyView(selectedDate);
-}
+    await batch.commit();
+  }
 
   const loginDiv = document.getElementById("loginDiv");
   const appDiv = document.getElementById("appDiv");
@@ -639,7 +609,7 @@ async function createTaskSeries(startDate, endDate, repeatDays, repeatInterval, 
       const [eh, em] = event.endTime.split(':').map(Number);
       return {
         id,
-   ...event,
+    ...event,
         start: sh * 60 + sm,
         end: eh * 60 + em
       };
@@ -755,10 +725,18 @@ async function createTaskSeries(startDate, endDate, repeatDays, repeatInterval, 
   });
 
   document.getElementById("deleteBtn").addEventListener("click", async () => {
-    if (!editingEventId ||!selectedDate) return;
+    console.log("Delete clicked. editingEventId:", editingEventId, "selectedDate:", selectedDate);
+    if (!editingEventId ||!selectedDate) {
+      console.log("Bailing: no editingEventId or selectedDate");
+      return;
+    }
     const dateStr = formatDate(selectedDate);
     const currentEvent = events[dateStr]?.[editingEventId];
-    if (!currentEvent) return;
+    console.log("Current event:", currentEvent);
+    if (!currentEvent) {
+      console.log("Bailing: no currentEvent found");
+      return;
+    }
 
     try {
       if (currentEvent.repeatGroupId) {
@@ -770,6 +748,7 @@ async function createTaskSeries(startDate, endDate, repeatDays, repeatInterval, 
           "Or Cancel to abort"
         );
 
+        console.log("User choice:", choice);
         if (choice === "1") {
           await deleteTask(editingEventId);
           delete events[dateStr][editingEventId];
@@ -781,7 +760,10 @@ async function createTaskSeries(startDate, endDate, repeatDays, repeatInterval, 
         else if (choice === "3") {
           await deleteSeriesByGroupId(currentEvent.repeatGroupId);
         }
-        else return;
+        else {
+          console.log("Delete cancelled");
+          return;
+        }
       } else {
         if (!confirm("Delete this event?")) return;
         await deleteTask(editingEventId);
@@ -841,7 +823,7 @@ async function createTaskSeries(startDate, endDate, repeatDays, repeatInterval, 
     const color = eventColorInput.value;
     const description = eventDescInput.value;
     const repeatDays = Array.from(document.querySelectorAll('input[name="repeatDays"]:checked'))
-.map(cb => parseInt(cb.value));
+  .map(cb => parseInt(cb.value));
     const repeatInterval = parseInt(repeatIntervalInput.value) || null;
     const endDateValue = repeatEndDateInput.value;
 
@@ -867,66 +849,48 @@ async function createTaskSeries(startDate, endDate, repeatDays, repeatInterval, 
       return;
     }
 
-    const baseData = { startTime, endTime, title, description, color };
+    if (editingEventId) {
+      const dateStr = formatDate(selectedDate);
+      const oldEvent = events[dateStr][editingEventId];
+      const baseData = { startTime, endTime, title, description, color };
 
-    try {
-      // EDIT MODE
-      if (editingEventId) {
-        const dateStr = formatDate(selectedDate);
-        const oldEvent = events[dateStr][editingEventId];
+      if (oldEvent?.repeatGroupId) {
+        const updateAll = confirm(
+          "This is a recurring task.\n\n" +
+          "OK = update the ENTIRE series with new repeat rules\n" +
+          "Cancel = update only this occurrence and remove it from series"
+        );
 
-        if (oldEvent?.repeatGroupId) {
-          const choice = prompt(
-            "This is a recurring task.\n\n" +
-            "Type 1 = Update this event only\n" +
-            "Type 2 = Update this and following events\n" +
-            "Type 3 = Update entire series\n\n" +
-            "Or Cancel to abort"
-          );
-
-          if (choice === "1") {
-            // Just update this one and detach from series
-            const updated = {...oldEvent,...baseData, repeatGroupId: null, repeatInterval: null, repeatDays: null, endDate: null };
-            await saveTask(editingEventId, updated);
-            events[dateStr][editingEventId] = updated;
-          }
-          else if (choice === "2") {
-            // Edit this and following: delete future, create new series from here
-            await editThisAndFollowing(oldEvent.repeatGroupId, dateStr, formatDate(endDate), repeatDays, repeatInterval, baseData);
-          }
-          else if (choice === "3") {
-            // Update entire series: delete old series, create new one from start
-            await deleteSeriesByGroupId(oldEvent.repeatGroupId);
-            await createTaskSeries(selectedDate, endDate, repeatDays, repeatInterval, baseData);
-          }
-          else return;
-
+        if (updateAll) {
+          await deleteSeriesByGroupId(oldEvent.repeatGroupId);
+          await createTaskSeries(selectedDate, endDate, repeatDays, repeatInterval, baseData);
         } else {
-          // Was a single task. Check if user added repeat rules now
-          if (repeatDays.length > 0 || repeatInterval) {
-            await deleteTask(editingEventId);
-            delete events[dateStr][editingEventId];
-            await createTaskSeries(selectedDate, endDate, repeatDays, repeatInterval, baseData);
-          } else {
-            const updated = {...oldEvent,...baseData };
-            await saveTask(editingEventId, updated);
-            events[dateStr][editingEventId] = updated;
-          }
+          const updated = {...oldEvent,...baseData, repeatGroupId: null, repeatInterval: null, repeatDays: null, endDate: null };
+          await saveTask(editingEventId, updated);
+          events[dateStr][editingEventId] = updated;
         }
 
-      // CREATE MODE
       } else {
-        await createTaskSeries(selectedDate, endDate, repeatDays, repeatInterval, baseData);
+        if (repeatDays.length > 0 || repeatInterval) {
+          await deleteTask(editingEventId);
+          delete events[dateStr][editingEventId];
+          await createTaskSeries(selectedDate, endDate, repeatDays, repeatInterval, baseData);
+        } else {
+          const updated = {...oldEvent,...baseData };
+          await saveTask(editingEventId, updated);
+          events[dateStr][editingEventId] = updated;
+        }
       }
 
-      formModal.style.display = "none";
-      editingEventId = null;
-      renderCalendar();
-      showDailyView(selectedDate);
-    } catch (err) {
-      console.error("Save error:", err);
-      alert("Save failed: " + err.message);
+    } else {
+      const baseData = { startTime, endTime, title, description, color };
+      await createTaskSeries(selectedDate, endDate, repeatDays, repeatInterval, baseData);
     }
+
+    formModal.style.display = "none";
+    editingEventId = null;
+    renderCalendar();
+    showDailyView(selectedDate);
   });
 
   document.getElementById("prevMonth").addEventListener("click", async () => {
