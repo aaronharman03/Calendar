@@ -321,6 +321,26 @@
     });
   }
 
+  async function deleteFollowingSeries(groupId, startDateStr) {
+    const q = query(tasksCol(), where("repeatGroupId", "==", groupId), where("date", ">=", startDateStr));
+    const snap = await getDocs(q);
+    const batch = writeBatch(db);
+    const deletedIds = new Set();
+    
+    snap.forEach(d => {
+      batch.delete(d.ref);
+      deletedIds.add(d.id);
+    });
+    await batch.commit();
+
+    Object.keys(events).forEach(dateKey => {
+      Object.keys(events[dateKey]).forEach(taskKey => {
+        if (deletedIds.has(taskKey)) delete events[dateKey][taskKey];
+      });
+      if (Object.keys(events[dateKey]).length === 0) delete events[dateKey];
+    });
+  }
+
   async function updateSeriesByGroupId(groupId, changes) {
     const q = query(tasksCol(), where("repeatGroupId", "==", groupId));
     const snap = await getDocs(q);
@@ -667,23 +687,30 @@
   });
 
   document.getElementById("deleteBtn").addEventListener("click", async () => {
-    if (!editingEventId ||!selectedDate) return;
+    if (!editingEventId || !selectedDate) return;
     const dateStr = formatDate(selectedDate);
     const currentEvent = events[dateStr]?.[editingEventId];
     if (!currentEvent) return;
 
     if (currentEvent.repeatGroupId) {
-      const deleteAll = confirm(
-        "This is a recurring task.\n\n" +
-        "• OK = delete the ENTIRE series\n" +
-        "• Cancel = delete only this occurrence"
+      const choice = prompt(
+        "This is a recurring task. Type a number to choose:\n\n" +
+        "1. Delete ONLY this occurrence\n" +
+        "2. Delete THIS AND ALL FOLLOWING occurrences\n" +
+        "3. Delete the ENTIRE series\n\n" +
+        "Press Cancel to exit."
       );
-      if (deleteAll) {
-        await deleteSeriesByGroupId(currentEvent.repeatGroupId);
-      } else {
+
+      if (choice === "1") {
         await deleteTask(editingEventId);
         delete events[dateStr][editingEventId];
         if (Object.keys(events[dateStr]).length === 0) delete events[dateStr];
+      } else if (choice === "2") {
+        await deleteFollowingSeries(currentEvent.repeatGroupId, dateStr);
+      } else if (choice === "3") {
+        await deleteSeriesByGroupId(currentEvent.repeatGroupId);
+      } else {
+        return;
       }
     } else {
       await deleteTask(editingEventId);
