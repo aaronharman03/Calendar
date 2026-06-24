@@ -296,17 +296,50 @@
     await deleteDoc(doc(tasksCol(), id));
   }
 
-  async function loadMonth(year, month) {
-    const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
-    const q = query(tasksCol(), where("date", ">=", prefix + "-01"), where("date", "<=", prefix + "-31"));
-    const snap = await getDocs(q);
-    Object.keys(events).forEach(d => { if (d.startsWith(prefix)) delete events[d]; });
-    snap.forEach(docSnap => {
-      const task = docSnap.data();
-      if (!events[task.date]) events[task.date] = {};
-      events[task.date][docSnap.id] = task;
-    });
-  }
+// NEW: Loads all rule docs, expands them into the calendar in JS
+async function loadMonth(year, month) {
+  const snap = await getDocs(tasksCol()); // Gets all rules. Should be <100 docs now, not 50k
+  events = {}; // Reset
+
+  snap.forEach(docSnap => {
+    const task = docSnap.data();
+    const id = docSnap.id;
+
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 0);
+    const taskStart = new Date(task.startDate + "T00:00:00");
+    const taskEnd = new Date(task.endDate + "T00:00:00");
+
+    // Only process if the task range overlaps with viewed month
+    if (taskEnd < monthStart || taskStart > monthEnd) return;
+
+    let loopDate = new Date(Math.max(monthStart, taskStart));
+    const finalDate = new Date(Math.min(monthEnd, taskEnd));
+
+    while (loopDate <= finalDate) {
+      let shouldAdd = false;
+
+      if (task.repeatDays && task.repeatDays.length > 0) {
+        shouldAdd = task.repeatDays.includes(loopDate.getDay());
+      } else if (task.repeatInterval) {
+        const diffDays = Math.round((loopDate - taskStart) / (1000 * 60 * 60 * 24));
+        shouldAdd = diffDays >= 0 && diffDays % task.repeatInterval === 0;
+      } else {
+        // Single event
+        shouldAdd = formatDate(loopDate) === task.startDate;
+      }
+
+      if (shouldAdd) {
+        const dateStr = formatDate(loopDate);
+        if (!events[dateStr]) events[dateStr] = {};
+        // Key = originalId + date so each occurrence is unique in the UI
+        events[dateStr][id + "_" + dateStr] = {...task, date: dateStr, _id: id};
+      }
+
+      loopDate.setDate(loopDate.getDate() + 1);
+    }
+  });
+}
 
   async function deleteSeriesByGroupId(groupId) {
     const q = query(tasksCol(), where("repeatGroupId", "==", groupId));
@@ -396,56 +429,27 @@
     });
   }
 
-  async function createTaskSeries(startDate, endDate, repeatDays, repeatInterval, baseData) {
-    const batch = writeBatch(db);
-    const groupId = (repeatDays.length > 0 || repeatInterval)? crypto.randomUUID() : null;
-    const loopDate = new Date(startDate);
+// NEW: Creates only 1 doc per event/repeat rule
+async function createTaskSeries(startDate, endDate, repeatDays, repeatInterval, baseData) {
+  const id = crypto.randomUUID();
+  const isRepeating = repeatDays.length > 0 || repeatInterval;
 
-    if (repeatDays.length > 0) {
-      while (loopDate <= endDate) {
-        if (repeatDays.includes(loopDate.getDay())) {
-          const dateStr = formatDate(loopDate);
-          const id = crypto.randomUUID();
-          const taskData = {
-            date: dateStr,
-       ...baseData,
-            repeatGroupId: groupId,
-            repeatDays,
-            endDate: formatDate(endDate)
-          };
-          batch.set(doc(tasksCol(), id), taskData);
-          if (!events[dateStr]) events[dateStr] = {};
-          events[dateStr][id] = taskData;
-        }
-        loopDate.setDate(loopDate.getDate() + 1);
-      }
-    } else if (repeatInterval && repeatInterval > 0) {
-      while (loopDate <= endDate) {
-        const dateStr = formatDate(loopDate);
-        const id = crypto.randomUUID();
-        const taskData = {
-          date: dateStr,
-     ...baseData,
-          repeatGroupId: groupId,
-          repeatInterval,
-          endDate: formatDate(endDate)
-        };
-        batch.set(doc(tasksCol(), id), taskData);
-        if (!events[dateStr]) events[dateStr] = {};
-        events[dateStr][id] = taskData;
-        loopDate.setDate(loopDate.getDate() + repeatInterval);
-      }
-    } else {
-      const dateStr = formatDate(startDate);
-      const id = crypto.randomUUID();
-      const taskData = { date: dateStr,...baseData, repeatGroupId: null };
-      batch.set(doc(tasksCol(), id), taskData);
-      if (!events[dateStr]) events[dateStr] = {};
-      events[dateStr][id] = taskData;
-    }
+  const taskData = {
+  ...baseData,
+    startDate: formatDate(startDate),
+    endDate: formatDate(endDate),
+    repeatDays: repeatDays.length > 0? repeatDays : null,
+    repeatInterval: repeatInterval || null,
+    repeatGroupId: isRepeating? crypto.randomUUID() : null
+  };
 
-    await batch.commit();
-  }
+  await setDoc(doc(tasksCol(), id), taskData);
+
+  // Refresh UI for current month
+  await loadMonth(currentYear, currentMonth);
+  renderCalendar();
+  showDailyView(selectedDate);
+}
 
   const loginDiv = document.getElementById("loginDiv");
   const appDiv = document.getElementById("appDiv");
